@@ -6,53 +6,68 @@
   <title>ESP32-H2 Water Meter Console</title>
   <style>
     :root {
-      --bg: #0b1020;
-      --panel: #121a33;
-      --panel-2: #17213f;
-      --text: #e9eeff;
-      --muted: #9aa7d1;
-      --accent: #6ea8ff;
-      --accent-2: #79e3b6;
-      --danger: #ff6b6b;
-      --warn: #ffd166;
-      --border: rgba(255,255,255,0.10);
-      --shadow: 0 12px 40px rgba(0,0,0,0.28);
-      --radius: 18px;
+      --bg: #08101f;
+      --panel: #101a32;
+      --panel-2: #162240;
+      --panel-3: #1d2b52;
+      --text: #edf2ff;
+      --muted: #93a2cb;
+      --accent: #72a7ff;
+      --accent-2: #77e0b5;
+      --warning: #ffd166;
+      --danger: #ff7272;
+      --border: rgba(255,255,255,.10);
+      --shadow: 0 16px 50px rgba(0,0,0,.30);
+      --radius: 20px;
     }
 
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(circle at top, #162043, var(--bg) 60%);
+      background: radial-gradient(circle at top, #152448 0%, var(--bg) 55%);
       color: var(--text);
-      min-height: 100vh;
     }
 
-    header {
-      padding: 20px 18px 10px;
-      max-width: 1400px;
+    .app {
+      max-width: 1500px;
       margin: 0 auto;
+      padding: 20px 18px 24px;
     }
 
-    h1 { margin: 0 0 6px; font-size: 1.55rem; }
-    .sub { color: var(--muted); font-size: 0.95rem; line-height: 1.4; }
+    .hero {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
 
-    .wrap {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 14px 18px 22px;
+    h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      letter-spacing: .02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 1050px;
+      font-size: .95rem;
+    }
+
+    .layout {
       display: grid;
       grid-template-columns: 360px 1fr;
       gap: 16px;
+      align-items: start;
     }
 
-    @media (max-width: 1080px) {
-      .wrap { grid-template-columns: 1fr; }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
     }
 
     .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -62,325 +77,460 @@
     .card h2 {
       margin: 0;
       padding: 14px 16px;
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid var(--border);
       font-size: 1rem;
-      letter-spacing: 0.02em;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid var(--border);
     }
 
-    .card .body { padding: 14px 16px; }
+    .body { padding: 14px 16px; }
 
-    .grid {
-      display: grid;
-      gap: 10px;
-    }
-
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    @media (max-width: 640px) {
-      .row2, .row3 { grid-template-columns: 1fr; }
+    .grid { display: grid; gap: 10px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .row-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 680px) {
+      .row-2, .row-3, .row-4 { grid-template-columns: 1fr; }
     }
 
     label {
       display: block;
-      font-size: 0.82rem;
+      font-size: .82rem;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin: 0 0 6px;
     }
 
     input, select, textarea, button {
       font: inherit;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
       color: var(--text);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      border-radius: 12px;
       padding: 10px 12px;
-      width: 100%;
       outline: none;
+      width: 100%;
     }
 
-    textarea { min-height: 84px; resize: vertical; }
+    textarea { min-height: 88px; resize: vertical; }
 
     input:focus, select:focus, textarea:focus {
-      border-color: rgba(110,168,255,0.8);
-      box-shadow: 0 0 0 3px rgba(110,168,255,0.14);
+      border-color: rgba(114,167,255,.85);
+      box-shadow: 0 0 0 3px rgba(114,167,255,.13);
     }
 
     .btn {
       cursor: pointer;
-      transition: transform 0.08s ease, opacity 0.2s ease, border-color 0.2s ease;
+      font-weight: 700;
+      transition: transform .08s ease, opacity .15s ease, border-color .15s ease;
       user-select: none;
-      font-weight: 600;
     }
-    .btn:hover { border-color: rgba(255,255,255,0.20); }
+    .btn:hover { border-color: rgba(255,255,255,.20); }
     .btn:active { transform: translateY(1px); }
-    .btn.primary { background: linear-gradient(180deg, rgba(110,168,255,0.26), rgba(110,168,255,0.16)); }
-    .btn.success { background: linear-gradient(180deg, rgba(121,227,182,0.22), rgba(121,227,182,0.14)); }
-    .btn.warn { background: linear-gradient(180deg, rgba(255,209,102,0.22), rgba(255,209,102,0.14)); }
-    .btn.danger { background: linear-gradient(180deg, rgba(255,107,107,0.26), rgba(255,107,107,0.16)); }
-    .btn.ghost { background: rgba(255,255,255,0.03); }
+    .btn.primary { background: linear-gradient(180deg, rgba(114,167,255,.30), rgba(114,167,255,.16)); }
+    .btn.success { background: linear-gradient(180deg, rgba(119,224,181,.24), rgba(119,224,181,.13)); }
+    .btn.warn { background: linear-gradient(180deg, rgba(255,209,102,.24), rgba(255,209,102,.12)); }
+    .btn.danger { background: linear-gradient(180deg, rgba(255,114,114,.28), rgba(255,114,114,.15)); }
+    .btn.ghost { background: rgba(255,255,255,.03); }
 
     .btn-row {
       display: grid;
+      gap: 10px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
     }
 
-    .btn-row-3 {
+    .btn-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .chipbar {
+    @media (max-width: 800px) {
+      .btn-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 480px) {
+      .btn-grid, .btn-row { grid-template-columns: 1fr; }
+    }
+
+    .chips {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 8px;
     }
 
     .chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       padding: 8px 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,.05);
       border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 0.9rem;
+      font-size: .88rem;
+    }
+
+    .chip strong { font-weight: 800; }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 680px) {
+      .status-grid { grid-template-columns: 1fr; }
     }
 
     .status {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 10px;
-    }
-
-    .stat {
       padding: 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      min-height: 68px;
     }
-    .stat .k { font-size: 0.78rem; color: var(--muted); }
-    .stat .v { margin-top: 4px; font-size: 1rem; font-weight: 700; word-break: break-word; }
+    .status .k {
+      color: var(--muted);
+      font-size: .78rem;
+      margin-bottom: 5px;
+    }
+    .status .v {
+      font-size: 1rem;
+      font-weight: 800;
+      word-break: break-word;
+    }
 
-    .logs {
-      height: 440px;
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      width: auto;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.04);
+    }
+    .tab-btn.active {
+      background: linear-gradient(180deg, rgba(114,167,255,.30), rgba(114,167,255,.16));
+      border-color: rgba(114,167,255,.5);
+    }
+
+    .tab {
+      display: none;
+      animation: fadeIn .16s ease;
+    }
+    .tab.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: .5; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log {
+      height: 450px;
       overflow: auto;
-      background: rgba(0,0,0,0.20);
-      border-top: 1px solid var(--border);
       padding: 12px;
+      background: rgba(0,0,0,.22);
+      border-top: 1px solid var(--border);
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.85rem;
+      font-size: .86rem;
       line-height: 1.45;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
-    .section-gap { margin-top: 14px; }
-    .tiny { font-size: 0.8rem; color: var(--muted); }
-    .ok { color: var(--accent-2); }
-    .bad { color: var(--danger); }
-    .mid { color: var(--warn); }
-
-    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
-
-    .cmd-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-    @media (max-width: 720px) { .cmd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-    .footer-note {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 18px 22px;
+    .tiny {
       color: var(--muted);
-      font-size: 0.85rem;
+      font-size: .8rem;
+      line-height: 1.45;
+    }
+
+    .footer {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: .82rem;
       line-height: 1.5;
     }
+
+    .record-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .record {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+    }
+
+    .record .r1 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .9rem;
+      margin-bottom: 6px;
+    }
+
+    .record .r1 strong { font-size: .95rem; }
+    .record .r2 { color: var(--muted); font-size: .83rem; line-height: 1.45; }
 
     a { color: var(--accent); }
   </style>
 </head>
 <body>
-  <header>
-    <h1>ESP32-H2 Water Meter Console</h1>
-    <div class="sub">
-      Web Serial UART console for your meter. Saves state in localStorage, supports configurable baud rate,
-      command shortcuts, readings, config management, and optional Google Sheets sync.
+  <div class="app">
+    <div class="hero">
+      <h1>ESP32-H2 Water Meter Console</h1>
+      <div class="subtitle">
+        Chrome Web Serial UART dashboard for your meter. It keeps local history in localStorage, supports baud-rate selection,
+        command buttons, config workflows, raw terminal access, export tools, and optional Google Sheets sync.
+      </div>
     </div>
-  </header>
 
-  <div class="wrap">
-    <aside class="card">
-      <h2>Connection</h2>
-      <div class="body grid">
-        <div class="row2">
-          <div>
-            <label>Baud rate</label>
-            <select id="baudRate">
-              <option>9600</option>
-              <option>19200</option>
-              <option>38400</option>
-              <option>57600</option>
-              <option selected>115200</option>
-              <option>230400</option>
-            </select>
-          </div>
-          <div>
-            <label>Line ending</label>
-            <select id="lineEnding">
-              <option value="crlf">CRLF</option>
-              <option value="lf">LF</option>
-              <option value="none">None</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="btn-row">
-          <button class="btn primary" id="connectBtn">Connect UART</button>
-          <button class="btn danger" id="disconnectBtn" disabled>Disconnect</button>
-        </div>
-
-        <div class="chipbar">
-          <div class="chip">Port: <span id="portState" class="mid">Not connected</span></div>
-          <div class="chip">RX: <span id="rxCount">0</span></div>
-          <div class="chip">TX: <span id="txCount">0</span></div>
-        </div>
-
-        <div class="status">
-          <div class="stat"><div class="k">Connection</div><div class="v" id="connStatus">Idle</div></div>
-          <div class="stat"><div class="k">Last meter ID</div><div class="v" id="meterIdStatus">—</div></div>
-          <div class="stat"><div class="k">Last total</div><div class="v" id="totalStatus">—</div></div>
-          <div class="stat"><div class="k">Last time</div><div class="v" id="timeStatus">—</div></div>
-        </div>
-
-        <div class="section-gap">
-          <label>Custom command</label>
-          <textarea id="customCmd" placeholder="Type any meter command here..."></textarea>
-          <div class="btn-row section-gap">
-            <button class="btn success" id="sendCustomBtn">Send Command</button>
-            <button class="btn ghost" id="saveCustomBtn">Save to quick slot</button>
-          </div>
-        </div>
-
-        <div class="section-gap">
-          <label>Quick slot name</label>
-          <input id="slotName" placeholder="e.g. GET_CONFIG" />
-          <div class="btn-row section-gap">
-            <button class="btn ghost" id="loadSlotsBtn">Refresh slots</button>
-            <button class="btn ghost" id="clearSlotsBtn">Clear slots</button>
-          </div>
-          <div id="slotList" class="chipbar"></div>
-        </div>
-      </div>
-    </aside>
-
-    <main class="card">
-      <h2>Commands and Reading Workflows</h2>
-      <div class="body">
-        <div class="cmd-grid">
-          <button class="btn primary" data-cmd="GET_CONFIG">Get Config</button>
-          <button class="btn primary" data-cmd="GET_STATE">Get State</button>
-          <button class="btn primary" data-cmd="GET_TOTAL">Get Total</button>
-          <button class="btn success" data-cmd="GET_MONTH_HIS">Month History</button>
-          <button class="btn success" data-cmd="GET_TAMPER">Tamper Status</button>
-          <button class="btn success" data-cmd="GET_BATTERY">Battery</button>
-          <button class="btn warn" data-cmd="SET_TIME">Set Time</button>
-          <button class="btn warn" data-cmd="SET_METER_ID">Set Meter ID</button>
-          <button class="btn warn" data-cmd="SET_INSTALL_DATE">Set Install Date</button>
-          <button class="btn warn" data-cmd="SET_INSTALL_COUNTER">Set Install Counter</button>
-          <button class="btn danger" data-cmd="CLR_TAMPER">Clear Tamper</button>
-          <button class="btn danger" data-cmd="AUTH">AUTH</button>
-        </div>
-
-        <div class="split section-gap">
-          <div class="card" style="box-shadow:none; background:rgba(255,255,255,0.03);">
-            <h2>Meter configuration</h2>
-            <div class="body grid">
-              <div class="row2">
-                <div>
-                  <label>Meter ID</label>
-                  <input id="cfgMeterId" placeholder="WM000001" />
-                </div>
-                <div>
-                  <label>Meter type</label>
-                  <input id="cfgMeterType" placeholder="AC" />
-                </div>
-              </div>
-              <div class="row2">
-                <div>
-                  <label>Volume multiplier</label>
-                  <input id="cfgVolume" type="number" min="1" step="1" placeholder="3" />
-                </div>
-                <div>
-                  <label>Install counter</label>
-                  <input id="cfgInstallCounter" type="number" min="0" step="1" placeholder="0" />
-                </div>
-              </div>
-              <div class="row3">
-                <div><label>Install day</label><input id="cfgDay" type="number" min="1" max="31" /></div>
-                <div><label>Install month</label><input id="cfgMonth" type="number" min="1" max="12" /></div>
-                <div><label>Install year</label><input id="cfgYear" type="number" min="2000" step="1" /></div>
-              </div>
-              <div class="btn-row">
-                <button class="btn warn" id="sendConfigBtn">Send Config</button>
-                <button class="btn ghost" id="storeConfigLocalBtn">Save Local</button>
-              </div>
+    <div class="layout">
+      <aside class="card">
+        <h2>Connection</h2>
+        <div class="body grid">
+          <div class="row-2">
+            <div>
+              <label>Baud rate</label>
+              <select id="baudRate">
+                <option>9600</option>
+                <option>19200</option>
+                <option>38400</option>
+                <option>57600</option>
+                <option selected>115200</option>
+                <option>230400</option>
+                <option>460800</option>
+              </select>
+            </div>
+            <div>
+              <label>Line ending</label>
+              <select id="lineEnding">
+                <option value="crlf">CRLF</option>
+                <option value="lf">LF</option>
+                <option value="none">None</option>
+              </select>
             </div>
           </div>
 
-          <div class="card" style="box-shadow:none; background:rgba(255,255,255,0.03);">
-            <h2>Advanced features</h2>
-            <div class="body grid">
-              <div class="row2">
-                <button class="btn ghost" id="btnReadings">Take Reading Snapshot</button>
-                <button class="btn ghost" id="btnExportCsv">Export CSV</button>
-              </div>
-              <div class="row2">
-                <button class="btn ghost" id="btnExportJson">Export JSON</button>
-                <button class="btn ghost" id="btnCopyLast">Copy Last Record</button>
-              </div>
-              <div class="row2">
-                <button class="btn ghost" id="btnMarkNote">Add Note</button>
-                <button class="btn ghost" id="btnClearLog">Clear Screen</button>
-              </div>
+          <div class="btn-row">
+            <button class="btn primary" id="connectBtn">Connect UART</button>
+            <button class="btn danger" id="disconnectBtn" disabled>Disconnect</button>
+          </div>
 
-              <div class="section-gap">
-                <label>Google Sheets sync URL / Apps Script endpoint</label>
-                <input id="sheetEndpoint" placeholder="https://script.google.com/macros/s/.../exec" />
-                <div class="tiny">Browser-only sync works best with a Google Apps Script web app endpoint. A plain static page cannot safely write to a private Sheet without some Google-side endpoint or OAuth flow.</div>
-              </div>
+          <div class="chips">
+            <div class="chip">Port: <strong id="portState">Not connected</strong></div>
+            <div class="chip">RX: <strong id="rxCount">0</strong></div>
+            <div class="chip">TX: <strong id="txCount">0</strong></div>
+          </div>
 
-              <div class="btn-row">
-                <button class="btn success" id="syncNowBtn">Sync Last Record</button>
-                <button class="btn ghost" id="testEndpointBtn">Test Endpoint</button>
-              </div>
+          <div class="status-grid">
+            <div class="status"><div class="k">Connection</div><div class="v" id="connStatus">Idle</div></div>
+            <div class="status"><div class="k">Last meter ID</div><div class="v" id="lastMeterId">—</div></div>
+            <div class="status"><div class="k">Last total</div><div class="v" id="lastTotal">—</div></div>
+            <div class="status"><div class="k">Last battery</div><div class="v" id="lastBattery">—</div></div>
+          </div>
+
+          <div class="section-gap">
+            <label>Quick command</label>
+            <textarea id="customCmd" placeholder="Type any command here, e.g. GET_CONFIG"></textarea>
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn success" id="sendCustomBtn">Send</button>
+              <button class="btn ghost" id="saveQuickSlotBtn">Save as slot</button>
+            </div>
+          </div>
+
+          <div class="section-gap">
+            <label>Quick slot name</label>
+            <input id="slotName" placeholder="e.g. GET_CONFIG" />
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn ghost" id="refreshSlotsBtn">Refresh slots</button>
+              <button class="btn ghost" id="clearSlotsBtn">Clear slots</button>
+            </div>
+            <div id="slotList" class="chips" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="section-gap">
+            <label>Google Sheets endpoint</label>
+            <input id="sheetEndpoint" placeholder="https://script.google.com/macros/s/.../exec" />
+            <div class="tiny" style="margin-top:6px;">
+              This page is browser-only. To write to Google Sheets without your own backend, point this at a Google Apps Script web app endpoint.
+              A plain private Sheet cannot be written directly from a static page without OAuth or an Apps Script bridge.
+            </div>
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn success" id="syncSheetBtn">Sync last reading</button>
+              <button class="btn ghost" id="testSheetBtn">Test endpoint</button>
             </div>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div class="logs" id="log"></div>
-    </main>
-  </div>
+      <main class="card">
+        <h2>Console</h2>
+        <div class="body">
+          <div class="tabs">
+            <button class="btn tab-btn active" data-tab="readingsTab">Readings</button>
+            <button class="btn tab-btn" data-tab="configTab">Configure Meter</button>
+            <button class="btn tab-btn" data-tab="advancedTab">Advanced</button>
+            <button class="btn tab-btn" data-tab="terminalTab">Raw Terminal</button>
+          </div>
 
-  <div class="footer-note">
-    Tip: this page must be opened in a secure context (HTTPS or localhost). Web Serial is available in modern Chrome on desktop,
-    and Chrome on Android has support for USB-based serial workflows depending on the device and connection path. ([developer.chrome.com](https://developer.chrome.com/docs/capabilities/serial?utm_source=chatgpt.com))
-    For Google Sheets, client-side write access is normally done either through Google OAuth in the browser or via a Google Apps Script web app endpoint. ([developers.google.com](https://developers.google.com/workspace/sheets/api/quickstart/js?utm_source=chatgpt.com))
+          <section id="readingsTab" class="tab active">
+            <div class="btn-grid">
+              <button class="btn primary" data-cmd="GET_CONFIG">Get Config</button>
+              <button class="btn primary" data-cmd="GET_STATE">Get State</button>
+              <button class="btn primary" data-cmd="GET_TOTAL">Get Total</button>
+              <button class="btn success" data-cmd="GET_MONTH_HIS">Month History</button>
+              <button class="btn success" data-cmd="GET_TAMPER">Tamper Status</button>
+              <button class="btn success" data-cmd="GET_BATTERY">Battery</button>
+              <button class="btn warn" data-cmd="GET_TIME">Get Time</button>
+              <button class="btn warn" data-cmd="PING">Ping</button>
+              <button class="btn danger" data-cmd="AUTH">AUTH</button>
+            </div>
+
+            <div class="section-gap">
+              <div class="row-2">
+                <button class="btn ghost" id="snapshotBtn">Take reading snapshot</button>
+                <button class="btn ghost" id="copyLastBtn">Copy last record</button>
+              </div>
+            </div>
+
+            <div class="section-gap">
+              <div class="card" style="box-shadow:none; background:rgba(255,255,255,.03);">
+                <h2>Recent readings</h2>
+                <div class="body">
+                  <div id="recordList" class="record-list"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="configTab" class="tab">
+            <div class="card" style="box-shadow:none; background:rgba(255,255,255,.03);">
+              <h2>Meter configuration</h2>
+              <div class="body grid">
+                <div class="row-2">
+                  <div>
+                    <label>Meter ID</label>
+                    <input id="cfgMeterId" placeholder="WM000001" />
+                  </div>
+                  <div>
+                    <label>Meter type</label>
+                    <input id="cfgMeterType" placeholder="AC" />
+                  </div>
+                </div>
+
+                <div class="row-2">
+                  <div>
+                    <label>Volume multiplier</label>
+                    <input id="cfgVolumeMultiplier" type="number" min="1" step="1" placeholder="3" />
+                  </div>
+                  <div>
+                    <label>Install counter</label>
+                    <input id="cfgInstallCounter" type="number" min="0" step="1" placeholder="0" />
+                  </div>
+                </div>
+
+                <div class="row-3">
+                  <div>
+                    <label>Install day</label>
+                    <input id="cfgDay" type="number" min="1" max="31" />
+                  </div>
+                  <div>
+                    <label>Install month</label>
+                    <input id="cfgMonth" type="number" min="1" max="12" />
+                  </div>
+                  <div>
+                    <label>Install year</label>
+                    <input id="cfgYear" type="number" min="2000" step="1" />
+                  </div>
+                </div>
+
+                <div class="row-2">
+                  <button class="btn warn" id="sendConfigBtn">Send configuration</button>
+                  <button class="btn ghost" id="saveConfigLocalBtn">Save locally</button>
+                </div>
+
+                <div class="tiny">
+                  These commands are sent as plain UART lines, so they fit your text-based command handler style.
+                  Adjust the exact command strings below if your firmware uses a different command grammar.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="advancedTab" class="tab">
+            <div class="btn-grid">
+              <button class="btn ghost" data-cmd="CLR_TAMPER">Clear Tamper</button>
+              <button class="btn ghost" data-cmd="SET_TIME">Set Time</button>
+              <button class="btn ghost" data-cmd="SET_INSTALL_DATE">Set Install Date</button>
+              <button class="btn ghost" data-cmd="SET_INSTALL_COUNTER">Set Install Counter</button>
+              <button class="btn ghost" data-cmd="SET_METER_ID">Set Meter ID</button>
+              <button class="btn ghost" data-cmd="SET_VOLUME_MULTIPLIER">Set Volume Multiplier</button>
+              <button class="btn ghost" data-cmd="REBOOT">Reboot</button>
+              <button class="btn ghost" data-cmd="STATUS">Status</button>
+              <button class="btn danger" id="clearLogBtn">Clear Log</button>
+            </div>
+
+            <div class="section-gap">
+              <div class="card" style="box-shadow:none; background:rgba(255,255,255,.03);">
+                <h2>Export / storage</h2>
+                <div class="body grid">
+                  <div class="row-2">
+                    <button class="btn ghost" id="exportCsvBtn">Export CSV</button>
+                    <button class="btn ghost" id="exportJsonBtn">Export JSON</button>
+                  </div>
+                  <div class="row-2">
+                    <button class="btn ghost" id="clearHistoryBtn">Clear history</button>
+                    <button class="btn ghost" id="addNoteBtn">Add note</button>
+                  </div>
+                  <div class="tiny">
+                    All readings, last values, and quick slots are kept in localStorage so a reload does not lose data.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="terminalTab" class="tab">
+            <div class="card" style="box-shadow:none; background:rgba(255,255,255,.03);">
+              <h2>Raw UART terminal</h2>
+              <div class="body grid">
+                <div>
+                  <label>Raw command</label>
+                  <textarea id="terminalInput" placeholder="Type anything and send it raw"></textarea>
+                </div>
+                <div class="row-2">
+                  <button class="btn success" id="sendRawBtn">Send raw</button>
+                  <button class="btn ghost" id="pasteLastBtn">Paste last command</button>
+                </div>
+                <div class="tiny">
+                  Use this tab for testing parser edge cases, special commands, or exact UART frames.
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="log" id="log"></div>
+      </main>
+    </div>
+
+    <div class="footer">
+      Web Serial works only in secure contexts (HTTPS or localhost). Chrome must support the Serial API on the platform/device.
+      For Google Sheets, the browser-only path is an Apps Script web app endpoint or browser OAuth flow; a plain static page cannot safely write to a private sheet by itself.
+    </div>
   </div>
 
   <script>
-    const STORAGE_KEY = 'wm_console_state_v1';
-    const QUICK_SLOTS_KEY = 'wm_console_quick_slots_v1';
-    const RECORDS_KEY = 'wm_console_records_v1';
+    const STORAGE_KEY = 'wm_console_state_v2';
+    const RECORDS_KEY = 'wm_console_records_v2';
+    const SLOTS_KEY = 'wm_console_slots_v2';
 
     const state = {
       port: null,
@@ -390,99 +540,18 @@
       rxCount: 0,
       txCount: 0,
       buffer: '',
-      lastRecord: null,
       records: [],
-      quickSlots: {}
+      quickSlots: {},
+      lastRecord: null,
+      lastCommand: ''
     };
 
     const $ = (id) => document.getElementById(id);
     const logEl = $('log');
+    const recordListEl = $('recordList');
 
-    function nowStr() {
+    function nowText() {
       return new Date().toLocaleString();
-    }
-
-    function log(msg, kind = 'info') {
-      const line = `[${nowStr()}] ${msg}`;
-      logEl.textContent += line + '\n';
-      logEl.scrollTop = logEl.scrollHeight;
-      console[kind === 'bad' ? 'error' : kind === 'warn' ? 'warn' : 'log'](line);
-    }
-
-    function setStatus() {
-      $('connStatus').textContent = state.connected ? 'Connected' : 'Idle';
-      $('portState').textContent = state.connected ? 'Open' : 'Not connected';
-      $('portState').className = state.connected ? 'ok' : 'mid';
-      $('rxCount').textContent = String(state.rxCount);
-      $('txCount').textContent = String(state.txCount);
-      $('disconnectBtn').disabled = !state.connected;
-      $('connectBtn').disabled = state.connected;
-    }
-
-    function saveState() {
-      const data = {
-        baudRate: $('baudRate').value,
-        lineEnding: $('lineEnding').value,
-        cfgMeterId: $('cfgMeterId').value,
-        cfgMeterType: $('cfgMeterType').value,
-        cfgVolume: $('cfgVolume').value,
-        cfgInstallCounter: $('cfgInstallCounter').value,
-        cfgDay: $('cfgDay').value,
-        cfgMonth: $('cfgMonth').value,
-        cfgYear: $('cfgYear').value,
-        customCmd: $('customCmd').value,
-        slotName: $('slotName').value,
-        sheetEndpoint: $('sheetEndpoint').value,
-        records: state.records,
-        quickSlots: state.quickSlots
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      localStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
-      localStorage.setItem(QUICK_SLOTS_KEY, JSON.stringify(state.quickSlots));
-    }
-
-    function loadState() {
-      try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        if (data.baudRate) $('baudRate').value = data.baudRate;
-        if (data.lineEnding) $('lineEnding').value = data.lineEnding;
-        if (data.cfgMeterId) $('cfgMeterId').value = data.cfgMeterId;
-        if (data.cfgMeterType) $('cfgMeterType').value = data.cfgMeterType;
-        if (data.cfgVolume) $('cfgVolume').value = data.cfgVolume;
-        if (data.cfgInstallCounter) $('cfgInstallCounter').value = data.cfgInstallCounter;
-        if (data.cfgDay) $('cfgDay').value = data.cfgDay;
-        if (data.cfgMonth) $('cfgMonth').value = data.cfgMonth;
-        if (data.cfgYear) $('cfgYear').value = data.cfgYear;
-        if (data.customCmd) $('customCmd').value = data.customCmd;
-        if (data.slotName) $('slotName').value = data.slotName;
-        if (data.sheetEndpoint) $('sheetEndpoint').value = data.sheetEndpoint;
-        state.records = Array.isArray(data.records) ? data.records : JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
-        state.quickSlots = data.quickSlots || JSON.parse(localStorage.getItem(QUICK_SLOTS_KEY) || '{}');
-      } catch (e) {
-        console.error(e);
-        state.records = [];
-        state.quickSlots = {};
-      }
-      renderSlots();
-    }
-
-    function renderSlots() {
-      const list = $('slotList');
-      list.innerHTML = '';
-      const entries = Object.entries(state.quickSlots);
-      if (entries.length === 0) {
-        list.innerHTML = '<div class="tiny">No quick slots saved.</div>';
-        return;
-      }
-      entries.forEach(([name, cmd]) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'chip';
-        wrap.innerHTML = `<strong>${escapeHtml(name)}</strong>`;
-        wrap.title = cmd;
-        wrap.style.cursor = 'pointer';
-        wrap.onclick = () => sendCommand(cmd);
-        list.appendChild(wrap);
-      });
     }
 
     function escapeHtml(s) {
@@ -493,46 +562,189 @@
         .replaceAll('"', '&quot;');
     }
 
-    function appendRecord(record) {
-      state.lastRecord = record;
-      state.records.unshift(record);
-      if (state.records.length > 500) state.records.length = 500;
-      $('meterIdStatus').textContent = record.meter_id || '—';
-      $('totalStatus').textContent = record.total ?? '—';
-      $('timeStatus').textContent = record.time || nowStr();
-      saveState();
+    function log(message, level = 'info') {
+      const line = `[${nowText()}] ${message}`;
+      logEl.textContent += line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+      if (level === 'warn') console.warn(line);
+      else if (level === 'bad') console.error(line);
+      else console.log(line);
     }
 
-    function normalizeLineEnding(text) {
+    function setConnUI() {
+      $('connStatus').textContent = state.connected ? 'Connected' : 'Idle';
+      $('portState').textContent = state.connected ? 'Open' : 'Not connected';
+      $('disconnectBtn').disabled = !state.connected;
+      $('connectBtn').disabled = state.connected;
+      $('rxCount').textContent = String(state.rxCount);
+      $('txCount').textContent = String(state.txCount);
+    }
+
+    function saveAll() {
+      const data = {
+        baudRate: $('baudRate').value,
+        lineEnding: $('lineEnding').value,
+        customCmd: $('customCmd').value,
+        slotName: $('slotName').value,
+        sheetEndpoint: $('sheetEndpoint').value,
+        cfgMeterId: $('cfgMeterId').value,
+        cfgMeterType: $('cfgMeterType').value,
+        cfgVolumeMultiplier: $('cfgVolumeMultiplier').value,
+        cfgInstallCounter: $('cfgInstallCounter').value,
+        cfgDay: $('cfgDay').value,
+        cfgMonth: $('cfgMonth').value,
+        cfgYear: $('cfgYear').value,
+        terminalInput: $('terminalInput').value,
+        records: state.records,
+        quickSlots: state.quickSlots,
+        lastRecord: state.lastRecord,
+        lastCommand: state.lastCommand
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
+      localStorage.setItem(SLOTS_KEY, JSON.stringify(state.quickSlots));
+    }
+
+    function loadAll() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (data.baudRate) $('baudRate').value = data.baudRate;
+        if (data.lineEnding) $('lineEnding').value = data.lineEnding;
+        if (data.customCmd !== undefined) $('customCmd').value = data.customCmd;
+        if (data.slotName !== undefined) $('slotName').value = data.slotName;
+        if (data.sheetEndpoint !== undefined) $('sheetEndpoint').value = data.sheetEndpoint;
+        if (data.cfgMeterId !== undefined) $('cfgMeterId').value = data.cfgMeterId;
+        if (data.cfgMeterType !== undefined) $('cfgMeterType').value = data.cfgMeterType;
+        if (data.cfgVolumeMultiplier !== undefined) $('cfgVolumeMultiplier').value = data.cfgVolumeMultiplier;
+        if (data.cfgInstallCounter !== undefined) $('cfgInstallCounter').value = data.cfgInstallCounter;
+        if (data.cfgDay !== undefined) $('cfgDay').value = data.cfgDay;
+        if (data.cfgMonth !== undefined) $('cfgMonth').value = data.cfgMonth;
+        if (data.cfgYear !== undefined) $('cfgYear').value = data.cfgYear;
+        if (data.terminalInput !== undefined) $('terminalInput').value = data.terminalInput;
+        state.records = Array.isArray(data.records) ? data.records : JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
+        state.quickSlots = data.quickSlots || JSON.parse(localStorage.getItem(SLOTS_KEY) || '{}');
+        state.lastRecord = data.lastRecord || state.records[0] || null;
+        state.lastCommand = data.lastCommand || '';
+      } catch (e) {
+        console.error(e);
+        state.records = [];
+        state.quickSlots = {};
+      }
+      renderSlots();
+      renderRecords();
+      hydrateLastRecordUI();
+    }
+
+    function hydrateLastRecordUI() {
+      const rec = state.lastRecord || null;
+      $('lastMeterId').textContent = rec?.meter_id || '—';
+      $('lastTotal').textContent = rec?.total ?? '—';
+      $('lastBattery').textContent = rec?.battery ?? '—';
+    }
+
+    function normalizeLineEnding(cmd) {
       const mode = $('lineEnding').value;
-      if (mode === 'crlf') return text + '\r\n';
-      if (mode === 'lf') return text + '\n';
-      return text;
+      if (mode === 'crlf') return cmd + '\r\n';
+      if (mode === 'lf') return cmd + '\n';
+      return cmd;
     }
 
-    function sendBytes(bytes) {
-      if (!state.writer) throw new Error('Not connected');
-      return state.writer.write(bytes);
+    function recordFromLine(line) {
+      const rec = { time: nowText(), raw: line };
+      let found = false;
+
+      const patterns = [
+        { key: 'meter_id', re: /(?:meter[_ ]?id|id)\s*[:=]\s*([A-Za-z0-9_\-]+)/i },
+        { key: 'total', re: /(?:total|reading|counter)\s*[:=]\s*(\d+)/i },
+        { key: 'battery', re: /(?:battery|batt)\s*[:=]\s*(\d+)/i },
+        { key: 'time', re: /(?:time|epoch|datetime)\s*[:=]\s*(.+)$/i },
+        { key: 'tamper', re: /tamper\s*[:=]\s*(.+)$/i },
+        { key: 'month', re: /month\s*[:=]\s*(.+)$/i },
+      ];
+
+      for (const p of patterns) {
+        const m = line.match(p.re);
+        if (m) {
+          rec[p.key] = m[1].trim();
+          found = true;
+        }
+      }
+
+      if (line.startsWith('{') && line.endsWith('}')) {
+        try {
+          const obj = JSON.parse(line);
+          Object.assign(rec, obj);
+          found = true;
+        } catch (_) {}
+      }
+
+      return found ? rec : null;
     }
 
-    async function sendCommand(cmd) {
-      if (!state.connected || !state.writer) {
-        log('Not connected. Connect UART first.', 'warn');
+    function pushRecord(rec) {
+      state.lastRecord = rec;
+      state.records.unshift(rec);
+      if (state.records.length > 500) state.records.length = 500;
+      hydrateLastRecordUI();
+      renderRecords();
+      saveAll();
+    }
+
+    function renderRecords() {
+      recordListEl.innerHTML = '';
+      if (!state.records.length) {
+        recordListEl.innerHTML = '<div class="tiny">No readings yet. Send a command or wait for the meter to respond.</div>';
         return;
       }
-      const payload = normalizeLineEnding(cmd);
-      const data = new TextEncoder().encode(payload);
-      await sendBytes(data);
-      state.txCount++;
-      setStatus();
-      saveState();
-      log(`TX > ${cmd}`);
+
+      const show = state.records.slice(0, 20);
+      for (const r of show) {
+        const el = document.createElement('div');
+        el.className = 'record';
+        el.innerHTML = `
+          <div class="r1">
+            <strong>${escapeHtml(r.meter_id || 'Record')}</strong>
+            <span>${escapeHtml(r.time || '')}</span>
+          </div>
+          <div class="r2">
+            ${r.total !== undefined ? `<div><strong>Total:</strong> ${escapeHtml(r.total)}</div>` : ''}
+            ${r.battery !== undefined ? `<div><strong>Battery:</strong> ${escapeHtml(r.battery)}</div>` : ''}
+            ${r.tamper !== undefined ? `<div><strong>Tamper:</strong> ${escapeHtml(r.tamper)}</div>` : ''}
+            ${r.raw ? `<div style="margin-top:6px;"><strong>Raw:</strong> ${escapeHtml(r.raw)}</div>` : ''}
+          </div>
+        `;
+        recordListEl.appendChild(el);
+      }
+    }
+
+    function renderSlots() {
+      const slotList = $('slotList');
+      slotList.innerHTML = '';
+      const entries = Object.entries(state.quickSlots || {});
+      if (!entries.length) {
+        slotList.innerHTML = '<div class="tiny">No quick slots saved.</div>';
+        return;
+      }
+      for (const [name, cmd] of entries) {
+        const chip = document.createElement('button');
+        chip.className = 'chip btn';
+        chip.style.width = 'auto';
+        chip.title = cmd;
+        chip.innerHTML = `<strong>${escapeHtml(name)}</strong>`;
+        chip.onclick = () => sendCommand(cmd);
+        slotList.appendChild(chip);
+      }
+    }
+
+    function addRecordFromLine(line) {
+      const rec = recordFromLine(line);
+      if (rec) pushRecord(rec);
     }
 
     async function connectSerial() {
       if (!('serial' in navigator)) {
         log('Web Serial is not available in this browser/context.', 'bad');
-        alert('Web Serial is not available. Use secure Chrome context.');
+        alert('Web Serial is not available. Use secure Chrome on a supported device.');
         return;
       }
 
@@ -543,13 +755,12 @@
         state.writer = state.port.writable.getWriter();
         state.reader = state.port.readable.getReader();
         state.connected = true;
-        setStatus();
+        setConnUI();
         log(`UART connected at ${baudRate} baud.`);
         readLoop();
       } catch (err) {
-        console.error(err);
-        log(`Connect failed: ${err.message || err}`, 'bad');
-        cleanupConnection(false);
+        log(`Connect failed: ${err?.message || err}`, 'bad');
+        cleanupConnection();
       }
     }
 
@@ -561,235 +772,195 @@
         }
       } catch (_) {}
       try {
-        if (state.writer) {
-          state.writer.releaseLock();
-        }
+        if (state.writer) state.writer.releaseLock();
       } catch (_) {}
       try {
-        if (state.port) {
-          await state.port.close();
-        }
+        if (state.port) await state.port.close();
       } catch (_) {}
       cleanupConnection(true);
     }
 
-    function cleanupConnection(userInitiated) {
+    function cleanupConnection(userAction = false) {
       state.reader = null;
       state.writer = null;
       state.port = null;
       state.connected = false;
       state.buffer = '';
-      setStatus();
-      if (userInitiated) log('UART disconnected.');
+      setConnUI();
+      if (userAction) log('UART disconnected.');
     }
 
     async function readLoop() {
       const decoder = new TextDecoder();
       try {
-        while (state.port && state.connected) {
+        while (state.reader && state.connected) {
           const { value, done } = await state.reader.read();
           if (done) break;
           if (!value) continue;
 
           const chunk = decoder.decode(value, { stream: true });
           state.buffer += chunk;
-          $('rxCount').textContent = String(state.rxCount);
-          while (true) {
-            const idx = state.buffer.search(/\r?\n/);
-            if (idx < 0) break;
-            const line = state.buffer.slice(0, idx);
+
+          let idx;
+          while ((idx = state.buffer.search(/\r?\n/)) >= 0) {
+            const line = state.buffer.slice(0, idx).trim();
             state.buffer = state.buffer.slice(idx).replace(/^\r?\n/, '');
-            processLine(line.trim());
+            if (!line) continue;
+            state.rxCount++;
+            setConnUI();
+            log(`RX < ${line}`);
+            addRecordFromLine(line);
+
+            if (/AUTH_OK|AUTHORIZED|AUTH SUCCESS/i.test(line)) {
+              log('Authorization confirmed by meter.', 'warn');
+            }
+            if (/AUTH_FAIL|REJECTED|FAIL/i.test(line)) {
+              log('Authorization rejected by meter.', 'bad');
+            }
           }
         }
       } catch (err) {
-        log(`Read loop stopped: ${err.message || err}`, 'warn');
+        log(`Read loop stopped: ${err?.message || err}`, 'warn');
       } finally {
         cleanupConnection(false);
       }
     }
 
-    function processLine(line) {
-      if (!line) return;
-      state.rxCount++;
-      setStatus();
-      log(`RX < ${line}`);
-
-      if (line.startsWith('{') && line.endsWith('}')) {
-        try {
-          const obj = JSON.parse(line);
-          if (obj.meter_id || obj.total !== undefined) appendRecord({ ...obj, time: obj.time || nowStr() });
-        } catch (_) {}
+    async function sendRawText(text) {
+      if (!state.connected || !state.writer) {
+        log('Not connected. Connect UART first.', 'warn');
         return;
       }
-
-      const patterns = [
-        /meter_id\s*[:=]\s*([A-Za-z0-9_\-]+)/i,
-        /id\s*[:=]\s*([A-Za-z0-9_\-]+)/i,
-        /total\s*[:=]\s*(\d+)/i,
-        /counter\s*[:=]\s*(\d+)/i,
-        /battery\s*[:=]\s*(\d+)/i,
-        /time\s*[:=]\s*(.+)$/i,
-      ];
-
-      const record = { raw: line, time: nowStr() };
-      let matched = false;
-      for (const re of patterns) {
-        const m = line.match(re);
-        if (!m) continue;
-        matched = true;
-        const key = re.source.includes('meter_id') || re.source.includes('id') ? 'meter_id'
-          : re.source.includes('total') ? 'total'
-          : re.source.includes('counter') ? 'total'
-          : re.source.includes('battery') ? 'battery'
-          : 'time';
-        record[key] = m[1];
-      }
-      if (matched) appendRecord(record);
-
-      if (/AUTH_OK|AUTHORIZED|AUTH SUCCESS/i.test(line)) {
-        log('Authorization confirmed by meter.', 'warn');
-      }
-      if (/AUTH_FAIL|REJECTED|FAIL/i.test(line)) {
-        log('Authorization rejected by meter.', 'bad');
-      }
+      const payload = normalizeLineEnding(text);
+      const bytes = new TextEncoder().encode(payload);
+      await state.writer.write(bytes);
+      state.txCount++;
+      state.lastCommand = text;
+      setConnUI();
+      saveAll();
+      log(`TX > ${text}`);
     }
 
-    function getCfgPayload() {
-      return {
-        meter_id: $('cfgMeterId').value.trim(),
-        meter_type: $('cfgMeterType').value.trim(),
-        volume_multiplier: Number($('cfgVolume').value || 0),
-        install_counter: Number($('cfgInstallCounter').value || 0),
-        install_day: Number($('cfgDay').value || 1),
-        install_month: Number($('cfgMonth').value || 1),
-        install_year: Number($('cfgYear').value || new Date().getFullYear())
-      };
+    async function sendCommand(cmd) {
+      const text = String(cmd || '').trim();
+      if (!text) return;
+      await sendRawText(text);
+    }
+
+    function fillDefaultConfigIfEmpty() {
+      if (!$('cfgMeterId').value) $('cfgMeterId').value = 'WM000001';
+      if (!$('cfgMeterType').value) $('cfgMeterType').value = 'AC';
+      if (!$('cfgVolumeMultiplier').value) $('cfgVolumeMultiplier').value = '3';
+      if (!$('cfgInstallCounter').value) $('cfgInstallCounter').value = '0';
+      if (!$('cfgDay').value) $('cfgDay').value = '1';
+      if (!$('cfgMonth').value) $('cfgMonth').value = '1';
+      if (!$('cfgYear').value) $('cfgYear').value = String(new Date().getFullYear());
+    }
+
+    function getConfigCommands() {
+      const meterId = $('cfgMeterId').value.trim();
+      const meterType = $('cfgMeterType').value.trim();
+      const vol = $('cfgVolumeMultiplier').value.trim();
+      const ctr = $('cfgInstallCounter').value.trim();
+      const day = String($('cfgDay').value).padStart(2, '0');
+      const month = String($('cfgMonth').value).padStart(2, '0');
+      const year = $('cfgYear').value.trim();
+
+      return [
+        `SET_METER_ID:${meterId}`,
+        `SET_METER_TYPE:${meterType}`,
+        `SET_VOLUME_MULTIPLIER:${vol}`,
+        `SET_INSTALL_COUNTER:${ctr}`,
+        `SET_INSTALL_DATE:${day}-${month}-${year}`
+      ];
     }
 
     async function sendConfig() {
-      const c = getCfgPayload();
-      const lines = [
-        `SET_METER_ID:${c.meter_id}`,
-        `SET_METER_TYPE:${c.meter_type}`,
-        `SET_VOLUME_MULTIPLIER:${c.volume_multiplier}`,
-        `SET_INSTALL_COUNTER:${c.install_counter}`,
-        `SET_INSTALL_DATE:${String(c.install_day).padStart(2,'0')}-${String(c.install_month).padStart(2,'0')}-${c.install_year}`
-      ];
-      for (const line of lines) {
-        await sendCommand(line);
-        await sleep(120);
+      for (const cmd of getConfigCommands()) {
+        await sendCommand(cmd);
+        await delay(120);
       }
-      saveState();
-      log('Config commands sent.');
+      log('Configuration commands sent.');
     }
 
-    function sleep(ms) {
-      return new Promise(r => setTimeout(r, ms));
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function getSnapshot() {
-      return {
-        time: new Date().toISOString(),
-        meter_id: $('cfgMeterId').value.trim() || (state.lastRecord && state.lastRecord.meter_id) || '',
+    function snapshotCurrentReading() {
+      const snapshot = {
+        time: nowText(),
+        meter_id: $('cfgMeterId').value.trim() || state.lastRecord?.meter_id || '',
         total: state.lastRecord?.total ?? '',
         battery: state.lastRecord?.battery ?? '',
-        raw: state.lastRecord?.raw ?? '',
-        records: state.records.slice(0, 50)
+        raw: state.lastRecord?.raw ?? ''
       };
-    }
-
-    async function syncToSheet() {
-      const url = $('sheetEndpoint').value.trim();
-      if (!url) {
-        log('Add a Google Apps Script endpoint first.', 'warn');
-        return;
-      }
-      const payload = getSnapshot();
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const text = await res.text();
-        log(`Sheet sync response: ${text}`);
-      } catch (err) {
-        log(`Sheet sync failed: ${err.message || err}`, 'bad');
-      }
-    }
-
-    async function testEndpoint() {
-      const url = $('sheetEndpoint').value.trim();
-      if (!url) {
-        log('No endpoint configured.', 'warn');
-        return;
-      }
-      try {
-        const res = await fetch(url, { method: 'GET', mode: 'cors' });
-        log(`Endpoint test status: ${res.status}`);
-      } catch (err) {
-        log(`Endpoint test failed: ${err.message || err}`, 'bad');
-      }
-    }
-
-    function exportJson() {
-      const data = JSON.stringify(state.records, null, 2);
-      downloadFile(`wm_records_${Date.now()}.json`, data, 'application/json');
+      pushRecord(snapshot);
+      log('Snapshot recorded locally.');
     }
 
     function exportCsv() {
-      const rows = [
-        ['time', 'meter_id', 'total', 'battery', 'raw']
-      ];
+      const header = ['time', 'meter_id', 'total', 'battery', 'tamper', 'raw'];
+      const rows = [header];
       for (const r of state.records) {
         rows.push([
-          csvCell(r.time),
-          csvCell(r.meter_id),
-          csvCell(r.total),
-          csvCell(r.battery),
-          csvCell(r.raw)
+          csvCell(r.time), csvCell(r.meter_id), csvCell(r.total), csvCell(r.battery), csvCell(r.tamper), csvCell(r.raw)
         ]);
       }
       const csv = rows.map(r => r.join(',')).join('\n');
       downloadFile(`wm_records_${Date.now()}.csv`, csv, 'text/csv');
     }
 
-    function csvCell(v) {
-      const s = String(v ?? '');
-      return `"${s.replaceAll('"', '""')}"`;
+    function exportJson() {
+      downloadFile(`wm_records_${Date.now()}.json`, JSON.stringify(state.records, null, 2), 'application/json');
     }
 
-    function downloadFile(name, content, type) {
-      const blob = new Blob([content], { type });
+    function csvCell(v) {
+      return `"${String(v ?? '').replaceAll('"', '""')}"`;
+    }
+
+    function downloadFile(name, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = name;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function copyLast() {
+    async function copyLastRecord() {
       if (!state.lastRecord) {
         log('No record to copy.', 'warn');
         return;
       }
-      navigator.clipboard.writeText(JSON.stringify(state.lastRecord, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(state.lastRecord, null, 2));
       log('Last record copied to clipboard.');
     }
 
     function addNote() {
-      const note = prompt('Enter a note for the current session:');
+      const note = prompt('Enter a note for this session:');
       if (!note) return;
-      const rec = { time: nowStr(), note };
-      state.records.unshift(rec);
-      saveState();
+      pushRecord({ time: nowText(), note });
       log(`NOTE: ${note}`);
     }
 
-    function clearLog() {
-      logEl.textContent = '';
+    function clearHistory() {
+      if (!confirm('Clear stored readings?')) return;
+      state.records = [];
+      state.lastRecord = null;
+      renderRecords();
+      hydrateLastRecordUI();
+      saveAll();
+      log('History cleared.');
+    }
+
+    function clearSlots() {
+      if (!confirm('Clear all quick slots?')) return;
+      state.quickSlots = {};
+      renderSlots();
+      saveAll();
+      log('Quick slots cleared.');
     }
 
     function saveQuickSlot() {
@@ -800,65 +971,121 @@
         return;
       }
       state.quickSlots[name] = cmd;
-      saveState();
       renderSlots();
+      saveAll();
       log(`Saved quick slot: ${name}`);
     }
 
-    function clearSlots() {
-      if (!confirm('Clear all quick slots?')) return;
-      state.quickSlots = {};
-      saveState();
-      renderSlots();
-      log('Quick slots cleared.');
+    async function syncLastToSheet() {
+      const endpoint = $('sheetEndpoint').value.trim();
+      if (!endpoint) {
+        log('Add a Google Apps Script endpoint first.', 'warn');
+        return;
+      }
+      const payload = state.lastRecord || { time: nowText(), note: 'No reading yet' };
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        log(`Sheet sync response: ${text}`);
+      } catch (err) {
+        log(`Sheet sync failed: ${err?.message || err}`, 'bad');
+      }
     }
 
-    function applyDefaultConfig() {
-      if (!$('cfgMeterId').value) $('cfgMeterId').value = 'WM000001';
-      if (!$('cfgMeterType').value) $('cfgMeterType').value = 'AC';
-      if (!$('cfgVolume').value) $('cfgVolume').value = '3';
-      if (!$('cfgInstallCounter').value) $('cfgInstallCounter').value = '0';
-      if (!$('cfgDay').value) $('cfgDay').value = '1';
-      if (!$('cfgMonth').value) $('cfgMonth').value = '1';
-      if (!$('cfgYear').value) $('cfgYear').value = String(new Date().getFullYear());
+    async function testEndpoint() {
+      const endpoint = $('sheetEndpoint').value.trim();
+      if (!endpoint) {
+        log('No endpoint configured.', 'warn');
+        return;
+      }
+      try {
+        const res = await fetch(endpoint, { method: 'GET', mode: 'cors' });
+        log(`Endpoint test status: ${res.status}`);
+      } catch (err) {
+        log(`Endpoint test failed: ${err?.message || err}`, 'bad');
+      }
     }
 
-    // Wire up buttons
+    async function sendPing() {
+      await sendCommand('PING');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      $(tabId).classList.add('active');
+      document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+    }
+
+    function clearLog() {
+      logEl.textContent = '';
+    }
+
+    function pasteLastCommand() {
+      $('terminalInput').value = state.lastCommand || $('customCmd').value || '';
+      saveAll();
+    }
+
+    async function sendRawTerminal() {
+      const text = $('terminalInput').value.trim();
+      if (!text) {
+        log('Terminal input is empty.', 'warn');
+        return;
+      }
+      await sendRawText(text);
+    }
+
+    // Wire up UI
     $('connectBtn').addEventListener('click', connectSerial);
     $('disconnectBtn').addEventListener('click', disconnectSerial);
-    $('sendCustomBtn').addEventListener('click', () => sendCommand($('customCmd').value.trim()));
-    $('saveCustomBtn').addEventListener('click', saveQuickSlot);
-    $('loadSlotsBtn').addEventListener('click', renderSlots);
+    $('sendCustomBtn').addEventListener('click', () => sendCommand($('customCmd').value));
+    $('saveQuickSlotBtn').addEventListener('click', saveQuickSlot);
+    $('refreshSlotsBtn').addEventListener('click', renderSlots);
     $('clearSlotsBtn').addEventListener('click', clearSlots);
     $('sendConfigBtn').addEventListener('click', sendConfig);
-    $('storeConfigLocalBtn').addEventListener('click', () => { saveState(); log('Config saved locally.'); });
-    $('btnReadings').addEventListener('click', () => sendCommand('GET_TOTAL'));
-    $('btnExportCsv').addEventListener('click', exportCsv);
-    $('btnExportJson').addEventListener('click', exportJson);
-    $('btnCopyLast').addEventListener('click', copyLast);
-    $('btnMarkNote').addEventListener('click', addNote);
-    $('btnClearLog').addEventListener('click', clearLog);
-    $('syncNowBtn').addEventListener('click', syncToSheet);
-    $('testEndpointBtn').addEventListener('click', testEndpoint);
+    $('saveConfigLocalBtn').addEventListener('click', () => { saveAll(); log('Config saved locally.'); });
+    $('snapshotBtn').addEventListener('click', snapshotCurrentReading);
+    $('copyLastBtn').addEventListener('click', copyLastRecord);
+    $('syncSheetBtn').addEventListener('click', syncLastToSheet);
+    $('testSheetBtn').addEventListener('click', testEndpoint);
+    $('exportCsvBtn').addEventListener('click', exportCsv);
+    $('exportJsonBtn').addEventListener('click', exportJson);
+    $('clearHistoryBtn').addEventListener('click', clearHistory);
+    $('addNoteBtn').addEventListener('click', addNote);
+    $('clearLogBtn').addEventListener('click', clearLog);
+    $('sendRawBtn').addEventListener('click', sendRawTerminal);
+    $('pasteLastBtn').addEventListener('click', pasteLastCommand);
 
     document.querySelectorAll('[data-cmd]').forEach(btn => {
       btn.addEventListener('click', () => sendCommand(btn.dataset.cmd));
     });
 
-    ['baudRate','lineEnding','cfgMeterId','cfgMeterType','cfgVolume','cfgInstallCounter','cfgDay','cfgMonth','cfgYear','customCmd','slotName','sheetEndpoint'].forEach(id => {
-      $(id).addEventListener('input', saveState);
-      $(id).addEventListener('change', saveState);
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
-    window.addEventListener('beforeunload', saveState);
+    ['baudRate','lineEnding','customCmd','slotName','sheetEndpoint','cfgMeterId','cfgMeterType','cfgVolumeMultiplier','cfgInstallCounter','cfgDay','cfgMonth','cfgYear','terminalInput']
+      .forEach(id => {
+        $(id).addEventListener('input', saveAll);
+        $(id).addEventListener('change', saveAll);
+      });
+
+    window.addEventListener('beforeunload', saveAll);
 
     // Init
-    loadState();
-    applyDefaultConfig();
-    setStatus();
-    log('Console ready. Choose Connect UART to open the serial port.');
-    log('Use the command buttons or send your own meter commands.');
-    saveState();
+    loadAll();
+    fillDefaultConfigIfEmpty();
+    renderSlots();
+    renderRecords();
+    setConnUI();
+    log('Console loaded. Click Connect UART to start the serial session.');
+    log('Use the command buttons, config tab, or raw terminal as needed.');
+    saveAll();
   </script>
 </body>
 </html>
