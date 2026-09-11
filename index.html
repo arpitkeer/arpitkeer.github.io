@@ -26,6 +26,8 @@
         .step-title { font-size: 15px; font-weight: 500; }
         .instruction { color: #888; font-size: 13px; margin-left: auto; font-style: italic; }
         
+        .adc-display { color: #00bcd4; font-weight: bold; margin-left: 10px; font-size: 16px; }
+
         #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
         .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
     </style>
@@ -63,7 +65,7 @@
         </div>
         <div class="step" id="step_5">
             <span class="dot gray"></span> 
-            <span class="step-title">5. Validate ADC Data</span> 
+            <span class="step-title">5. Validate ADC Data <span id="adc_value" class="adc-display"></span></span> 
             <span class="instruction">Internal check</span>
         </div>
         <div class="step" id="step_6">
@@ -94,6 +96,7 @@
         const banner = document.getElementById('statusBanner');
         const connectBtn = document.getElementById('connectBtn');
         const startTestBtn = document.getElementById('startTestBtn');
+        const adcValueSpan = document.getElementById('adc_value');
 
         function logData(text) {
             logBox.innerHTML += text + "<br>";
@@ -126,7 +129,16 @@
 
         function resetUI() {
             banner.style.display = 'none';
+            adcValueSpan.innerText = ""; // Clear old ADC value
             for(let i=1; i<=8; i++) updateStep(i, 'gray');
+        }
+
+        async function sendSerial(text) {
+            if (!port || !port.writable) return;
+            const encoder = new TextEncoder();
+            writer = port.writable.getWriter();
+            await writer.write(encoder.encode(text));
+            writer.releaseLock();
         }
 
         connectBtn.addEventListener('click', async () => {
@@ -141,26 +153,38 @@
                 connectBtn.innerText = "Reader Connected";
                 connectBtn.style.backgroundColor = "#00e676";
                 connectBtn.disabled = true;
-                
                 startTestBtn.style.display = "block";
                 
                 logData("Serial port opened successfully.");
                 resetUI();
                 readLoop();
+
+                // Wait 1 second for ESP32 reader to boot, then auto-answer the time prompt
+                setTimeout(async () => {
+                    const currentEpoch = Math.floor(Date.now() / 1000);
+                    await sendSerial(currentEpoch + "\n");
+                    logData("> Auto-synced Reader Time: " + currentEpoch);
+                }, 1000);
+
             } catch (err) {
                 logData("Error: " + err);
             }
         });
 
-        // Send the TEST_HW command to the reader
+        // Send the SET_TIME and TEST_HW commands to the meter via the reader
         startTestBtn.addEventListener('click', async () => {
-            if (!port || !port.writable) return;
-            const encoder = new TextEncoder();
-            writer = port.writable.getWriter();
-            await writer.write(encoder.encode("TEST_HW\n"));
-            writer.releaseLock();
-            logData("> Sent Command: TEST_HW");
             resetUI();
+            const currentEpoch = Math.floor(Date.now() / 1000);
+            
+            // 1. Send SET_TIME to update the actual meter
+            await sendSerial("SET_TIME " + currentEpoch + "\n");
+            logData("> Sent Command: SET_TIME " + currentEpoch);
+            
+            // 2. Wait 500ms to allow BLE transmission, then trigger the hardware test
+            setTimeout(async () => {
+                await sendSerial("TEST_HW\n");
+                logData("> Sent Command: TEST_HW");
+            }, 500);
         });
 
         async function readLoop() {
@@ -193,9 +217,10 @@
         }
 
         function parseTestString(str) {
-            // Check for tags embedded anywhere in the string (sent via nimble_adv)
+            // Check for tags embedded anywhere in the string
             if (str.includes("TEST_START")) resetUI();
 
+            // Extract step status: e.g., STEP_5_PASS
             const match = str.match(/STEP_(\d+)_([A-Z]+)/);
             if (match) {
                 const stepNum = parseInt(match[1]);
@@ -204,6 +229,14 @@
                 if (statusText === "ACTIVE") updateStep(stepNum, 'yellow');
                 else if (statusText === "PASS") updateStep(stepNum, 'green');
                 else if (statusText === "FAIL") updateStep(stepNum, 'red');
+            }
+
+            // Extract ADC Voltage: e.g., STEP_5_PASS 3148mV
+            if (str.includes("STEP_5_PASS")) {
+                const voltMatch = str.match(/STEP_5_PASS\s+(\d+)mV/);
+                if (voltMatch) {
+                    adcValueSpan.innerText = `(${voltMatch[1]} mV)`;
+                }
             }
 
             if (str.includes("TEST_DONE_PASS")) {
