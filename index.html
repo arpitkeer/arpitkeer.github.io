@@ -5,59 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Water Meter Production Jig</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #121212; 
-            color: #ffffff; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-        }
-        h1 { color: #00bcd4; margin-bottom: 5px; }
-        .container { 
-            background: #1e1e1e; 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 650px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.7); 
-        }
-        button { 
-            background: #00bcd4; 
-            color: #121212; 
-            border: none; 
-            padding: 14px 20px; 
-            font-size: 16px; 
-            font-weight: bold;
-            border-radius: 6px; 
-            cursor: pointer; 
-            margin-bottom: 25px; 
-            width: 100%; 
-            transition: 0.2s; 
-        }
-        button:hover { background: #0097a7; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #00bcd4; margin-bottom: 5px; text-align: center; }
+        .container { background: #1e1e1e; padding: 30px; border-radius: 12px; width: 650px; box-shadow: 0 8px 25px rgba(0,0,0,0.7); }
+        .btn-group { display: flex; gap: 15px; margin-bottom: 25px; }
+        button { background: #00bcd4; color: #121212; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #0097a7; }
         button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        #startTestBtn { background: #ffb300; display: none; }
+        #startTestBtn:hover:not(:disabled) { background: #e09e00; }
         
-        .step { 
-            display: flex; 
-            align-items: center; 
-            margin: 12px 0; 
-            padding: 12px 15px; 
-            border-radius: 6px; 
-            background: #2a2a2a; 
-            border: 1px solid #333;
-            transition: 0.3s;
-        }
-        .dot { 
-            height: 18px; 
-            width: 18px; 
-            border-radius: 50%; 
-            display: inline-block; 
-            margin-right: 15px; 
-            transition: background-color 0.3s, box-shadow 0.3s; 
-        }
+        .step { display: flex; align-items: center; margin: 12px 0; padding: 12px 15px; border-radius: 6px; background: #2a2a2a; border: 1px solid #333; transition: 0.3s; }
+        .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin-right: 15px; transition: background-color 0.3s, box-shadow 0.3s; }
         
-        /* Status Colors */
         .gray   { background-color: #555; }
         .yellow { background-color: #ffb300; box-shadow: 0 0 12px #ffb300; }
         .green  { background-color: #00e676; box-shadow: 0 0 12px #00e676; }
@@ -66,37 +26,20 @@
         .step-title { font-size: 15px; font-weight: 500; }
         .instruction { color: #888; font-size: 13px; margin-left: auto; font-style: italic; }
         
-        #log { 
-            background: #000; 
-            color: #00e676; 
-            padding: 15px; 
-            height: 160px; 
-            overflow-y: auto; 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 13px;
-            border-radius: 6px; 
-            margin-top: 25px; 
-            border: 1px solid #333;
-        }
-        
-        .status-banner {
-            text-align: center;
-            padding: 10px;
-            margin-top: 15px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 18px;
-            display: none;
-        }
+        #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
+        .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
     </style>
 </head>
 <body>
 
     <h1>Production Testing Jig</h1>
-    <p style="color:#aaa; margin-top:0;">Web Serial Diagnostic Dashboard</p>
+    <p style="color:#aaa; margin-top:0;">Web Serial Diagnostic via Reader Unit</p>
     
     <div class="container">
-        <button id="connectBtn">Connect to USB Serial</button>
+        <div class="btn-group">
+            <button id="connectBtn">1. Connect to USB Reader</button>
+            <button id="startTestBtn">2. Start HW Test</button>
+        </div>
         
         <div class="step" id="step_1">
             <span class="dot gray"></span> 
@@ -106,7 +49,7 @@
         <div class="step" id="step_2">
             <span class="dot gray"></span> 
             <span class="step-title">2. Check Initial Pins</span> 
-            <span class="instruction">Requires 10,11,25,0=1 | 12=0</span>
+            <span class="instruction">Requires 10,11=1 | 25,0,12=0</span>
         </div>
         <div class="step" id="step_3">
             <span class="dot gray"></span> 
@@ -146,8 +89,11 @@
     <script>
         let port;
         let reader;
+        let writer;
         const logBox = document.getElementById('log');
         const banner = document.getElementById('statusBanner');
+        const connectBtn = document.getElementById('connectBtn');
+        const startTestBtn = document.getElementById('startTestBtn');
 
         function logData(text) {
             logBox.innerHTML += text + "<br>";
@@ -168,47 +114,53 @@
             dot.className = `dot ${status}`;
             
             if (status === 'yellow') {
-                stepDiv.style.borderColor = "#ffb300";
-                stepDiv.style.backgroundColor = "#332c1c";
+                stepDiv.style.borderColor = "#ffb300"; stepDiv.style.backgroundColor = "#332c1c";
             } else if (status === 'green') {
-                stepDiv.style.borderColor = "#00e676";
-                stepDiv.style.backgroundColor = "#1b3320";
+                stepDiv.style.borderColor = "#00e676"; stepDiv.style.backgroundColor = "#1b3320";
             } else if (status === 'red') {
-                stepDiv.style.borderColor = "#ff1744";
-                stepDiv.style.backgroundColor = "#3d1c20";
+                stepDiv.style.borderColor = "#ff1744"; stepDiv.style.backgroundColor = "#3d1c20";
             } else {
-                stepDiv.style.borderColor = "#333";
-                stepDiv.style.backgroundColor = "#2a2a2a";
+                stepDiv.style.borderColor = "#333"; stepDiv.style.backgroundColor = "#2a2a2a";
             }
         }
 
         function resetUI() {
             banner.style.display = 'none';
-            for(let i=1; i<=8; i++) {
-                updateStep(i, 'gray');
-            }
+            for(let i=1; i<=8; i++) updateStep(i, 'gray');
         }
 
-        document.getElementById('connectBtn').addEventListener('click', async () => {
+        connectBtn.addEventListener('click', async () => {
             if (!('serial' in navigator)) {
                 alert("Web Serial API not supported in this browser. Please use Chrome or Edge.");
                 return;
             }
-
             try {
                 port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 115200 }); // Must match the ESP32 baud rate
                 
-                document.getElementById('connectBtn').innerText = "Connected - Reading Data...";
-                document.getElementById('connectBtn').style.backgroundColor = "#00e676";
-                document.getElementById('connectBtn').disabled = true;
+                connectBtn.innerText = "Reader Connected";
+                connectBtn.style.backgroundColor = "#00e676";
+                connectBtn.disabled = true;
+                
+                startTestBtn.style.display = "block";
+                
                 logData("Serial port opened successfully.");
                 resetUI();
-                
                 readLoop();
             } catch (err) {
                 logData("Error: " + err);
             }
+        });
+
+        // Send the TEST_HW command to the reader
+        startTestBtn.addEventListener('click', async () => {
+            if (!port || !port.writable) return;
+            const encoder = new TextEncoder();
+            writer = port.writable.getWriter();
+            await writer.write(encoder.encode("TEST_HW\n"));
+            writer.releaseLock();
+            logData("> Sent Command: TEST_HW");
+            resetUI();
         });
 
         async function readLoop() {
@@ -217,7 +169,6 @@
             reader = textDecoder.readable.getReader();
 
             let buffer = "";
-
             try {
                 while (true) {
                     const { value, done } = await reader.read();
@@ -229,10 +180,11 @@
 
                     for (let line of lines) {
                         line = line.trim();
-                        if (line.startsWith("[TEST]")) {
+                        // Optional: Print raw logs to see what's happening
+                        if (line.includes("[METER ACK]")) {
                             logData(line);
-                            parseTestString(line);
                         }
+                        parseTestString(line);
                     }
                 }
             } catch (error) {
@@ -241,13 +193,10 @@
         }
 
         function parseTestString(str) {
-            // Strip the marker to get the raw action, e.g., "STEP_3_ACTIVE"
-            const msg = str.replace("[TEST] ", "").trim();
+            // Check for tags embedded anywhere in the string (sent via nimble_adv)
+            if (str.includes("TEST_START")) resetUI();
 
-            if (msg === "START") resetUI();
-
-            // Regex captures the Step Number and the Status (ACTIVE, PASS, FAIL)
-            const match = msg.match(/STEP_(\d+)_([A-Z]+)/);
+            const match = str.match(/STEP_(\d+)_([A-Z]+)/);
             if (match) {
                 const stepNum = parseInt(match[1]);
                 const statusText = match[2];
@@ -257,10 +206,10 @@
                 else if (statusText === "FAIL") updateStep(stepNum, 'red');
             }
 
-            if (msg === "DONE_PASS") {
+            if (str.includes("TEST_DONE_PASS")) {
                 showBanner("✅ TEST COMPLETELY PASSED. REBOOTING INTO SHIPPING.", "#00e676", "#121212");
             }
-            if (msg === "DONE_FAIL") {
+            if (str.includes("TEST_DONE_FAIL")) {
                 showBanner("❌ TEST FAILED. INVESTIGATE AND RESTART.", "#ff1744", "#ffffff");
             }
         }
