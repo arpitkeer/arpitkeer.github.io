@@ -129,7 +129,7 @@
 
         function resetUI() {
             banner.style.display = 'none';
-            adcValueSpan.innerText = ""; // Clear old ADC value
+            adcValueSpan.innerText = ""; 
             for(let i=1; i<=8; i++) updateStep(i, 'gray');
         }
 
@@ -148,7 +148,7 @@
             }
             try {
                 port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 115200 }); // Must match the ESP32 baud rate
+                await port.open({ baudRate: 115200 }); 
                 
                 connectBtn.innerText = "Reader Connected";
                 connectBtn.style.backgroundColor = "#00e676";
@@ -159,7 +159,6 @@
                 resetUI();
                 readLoop();
 
-                // Wait 1 second for ESP32 reader to boot, then auto-answer the time prompt
                 setTimeout(async () => {
                     const currentEpoch = Math.floor(Date.now() / 1000);
                     await sendSerial(currentEpoch + "\n");
@@ -171,20 +170,17 @@
             }
         });
 
-        // Send the SET_TIME and TEST_HW commands to the meter via the reader
         startTestBtn.addEventListener('click', async () => {
             resetUI();
             const currentEpoch = Math.floor(Date.now() / 1000);
             
-            // 1. Send SET_TIME to update the actual meter
             await sendSerial("SET_TIME " + currentEpoch + "\n");
             logData("> Sent Command: SET_TIME " + currentEpoch);
             
-            // 2. Wait 500ms to allow BLE transmission, then trigger the hardware test
             setTimeout(async () => {
                 await sendSerial("TEST_HW\n");
                 logData("> Sent Command: TEST_HW");
-            }, 500);
+            }, 600);
         });
 
         async function readLoop() {
@@ -200,12 +196,11 @@
                     buffer += value;
                     
                     let lines = buffer.split('\n');
-                    buffer = lines.pop(); // Keep incomplete lines in the buffer
+                    buffer = lines.pop(); 
 
                     for (let line of lines) {
                         line = line.trim();
-                        // Optional: Print raw logs to see what's happening
-                        if (line.includes("[METER ACK]")) {
+                        if (line.includes("[METER ACK]") || line.includes("[INPUT]")) {
                             logData(line);
                         }
                         parseTestString(line);
@@ -217,10 +212,8 @@
         }
 
         function parseTestString(str) {
-            // Check for tags embedded anywhere in the string
             if (str.includes("TEST_START")) resetUI();
 
-            // Extract step status: e.g., STEP_5_PASS
             const match = str.match(/STEP_(\d+)_([A-Z]+)/);
             if (match) {
                 const stepNum = parseInt(match[1]);
@@ -231,7 +224,6 @@
                 else if (statusText === "FAIL") updateStep(stepNum, 'red');
             }
 
-            // Extract ADC Voltage: e.g., STEP_5_PASS 3148mV
             if (str.includes("STEP_5_PASS")) {
                 const voltMatch = str.match(/STEP_5_PASS\s+(\d+)mV/);
                 if (voltMatch) {
