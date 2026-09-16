@@ -55,6 +55,15 @@
 </head>
 <body>
 
+    <!-- Hidden IFrame for CORS-Free Google Sheets POST -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="google_form" target="hidden_iframe" method="POST" style="display:none;">
+        <input type="hidden" name="mac" id="form_mac">
+        <input type="hidden" name="date" id="form_date">
+        <input type="hidden" name="time" id="form_time">
+        <input type="hidden" name="status" id="form_status">
+    </form>
+
     <h1>Production Testing Jig</h1>
     <p style="color:#aaa; margin-top:0;">Web Serial Diagnostic via Reader Unit</p>
     
@@ -211,7 +220,7 @@
         // Test Restart / Abort logic
         restartBtn.addEventListener('click', async () => {
             logData("> Aborting test / Resetting...");
-            await sendSerial("DISC\n"); // Free the meter if it was stuck connected
+            await sendSerial("DISC\n"); 
             
             resetUI();
             currentMac = "";
@@ -321,27 +330,20 @@
             const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
             const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
 
-            // 1. Send data to Google Sheets using the "Tracking Pixel" method
+            // 1. Send data to Google Sheets using the Hidden Form POST method
             const scriptUrl = scriptUrlInput.value.trim();
             if (scriptUrl) {
                 try {
-                    const params = new URLSearchParams({ 
-                        mac: currentMac, 
-                        date: dateStr, 
-                        time: timeStr, 
-                        status: status 
-                    });
+                    document.getElementById('google_form').action = scriptUrl;
+                    document.getElementById('form_mac').value = currentMac;
+                    document.getElementById('form_date').value = dateStr;
+                    document.getElementById('form_time').value = timeStr;
+                    document.getElementById('form_status').value = status;
                     
-                    // Safely handle URLs that might already have query parameters
-                    const separator = scriptUrl.includes('?') ? '&' : '?';
-                    const fullUrl = scriptUrl + separator + params.toString();
-
-                    // Bypasses all browser security restrictions
-                    new Image().src = fullUrl;
-                    
+                    document.getElementById('google_form').submit();
                     logData("> Sync: Sent data to Google Sheets.");
                 } catch (err) {
-                    logData("> Sync Error: Failed to reach Google Sheets.");
+                    logData("> Sync Error: Failed to trigger hidden form.");
                 }
             }
 
