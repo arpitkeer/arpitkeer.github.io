@@ -17,10 +17,13 @@
         #startTestBtn { background: #ffb300; display: none; }
         #startTestBtn:hover:not(:disabled) { background: #e09e00; }
         
-        /* New Scanner Input Styles */
-        .input-group { margin-bottom: 25px; display: none; flex-direction: column; gap: 8px; }
+        #restartBtn { background: #ff1744; color: white; display: none; }
+        #restartBtn:hover { background: #d50000; }
+
+        /* Inputs */
+        .input-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
         .input-group label { color: #aaa; font-size: 14px; }
-        input[type="text"] { width: 100%; padding: 14px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 18px; box-sizing: border-box; transition: 0.3s; }
+        input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
         input[type="text"]:focus { outline: none; border-color: #00bcd4; box-shadow: 0 0 8px rgba(0, 188, 212, 0.4); }
         input:disabled { background: #333; cursor: not-allowed; color: #777; }
 
@@ -39,7 +42,7 @@
         #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
         .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
 
-        /* Table & Export Styles - results-container display is now block */
+        /* Table & Export Styles */
         .results-container { margin-top: 30px; display: block; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: #2a2a2a; border-radius: 6px; overflow: hidden; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
@@ -56,13 +59,21 @@
     <p style="color:#aaa; margin-top:0;">Web Serial Diagnostic via Reader Unit</p>
     
     <div class="container">
+        
+        <!-- Google Sheets Web App URL -->
+        <div class="input-group">
+            <label for="scriptUrl">Google Apps Script URL (For Live Cloud Sync)</label>
+            <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+
         <div class="btn-group">
             <button id="connectBtn">1. Connect to USB Reader</button>
             <button id="startTestBtn">2. Start HW Test</button>
+            <button id="restartBtn">Abort / Restart</button>
         </div>
 
         <!-- Scanner Input Area -->
-        <div class="input-group" id="inputGroup">
+        <div class="input-group" id="scanGroup" style="display: none;">
             <label for="macInput">Scan MAC Address (Auto-starts test)</label>
             <input type="text" id="macInput" placeholder="Awaiting barcode scanner..." disabled autocomplete="off">
         </div>
@@ -110,12 +121,13 @@
         const banner = document.getElementById('statusBanner');
         const connectBtn = document.getElementById('connectBtn');
         const startTestBtn = document.getElementById('startTestBtn');
+        const restartBtn = document.getElementById('restartBtn');
         const adcValueSpan = document.getElementById('adc_value');
         
-        const inputGroup = document.getElementById('inputGroup');
+        const scanGroup = document.getElementById('scanGroup');
         const macInput = document.getElementById('macInput');
+        const scriptUrlInput = document.getElementById('scriptUrl');
         
-        const resultsContainer = document.getElementById('resultsContainer');
         const resultsBody = document.getElementById('resultsBody');
         const exportBtn = document.getElementById('exportBtn');
 
@@ -175,9 +187,9 @@
                 connectBtn.style.backgroundColor = "#00e676";
                 connectBtn.disabled = true;
                 
-                // Show test button and scanner input
                 startTestBtn.style.display = "block";
-                inputGroup.style.display = "flex";
+                restartBtn.style.display = "block";
+                scanGroup.style.display = "flex";
                 macInput.disabled = false;
                 macInput.focus();
                 
@@ -185,7 +197,6 @@
                 resetUI();
                 readLoop();
 
-                // Auto-sync Time
                 setTimeout(async () => {
                     const currentEpoch = Math.floor(Date.now() / 1000);
                     await sendSerial(currentEpoch + "\n");
@@ -197,7 +208,19 @@
             }
         });
 
-        // Trigger test automatically when scanner inputs MAC and hits 'Enter'
+        // Test Restart / Abort logic
+        restartBtn.addEventListener('click', async () => {
+            logData("> Aborting test / Resetting...");
+            await sendSerial("DISC\n"); // Free the meter if it was stuck connected
+            
+            resetUI();
+            currentMac = "";
+            macInput.value = "";
+            macInput.disabled = false;
+            startTestBtn.disabled = false;
+            macInput.focus();
+        });
+
         macInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -215,7 +238,6 @@
                 return;
             }
 
-            // Lock UI during test
             macInput.disabled = true;
             startTestBtn.disabled = true;
             resetUI();
@@ -280,34 +302,45 @@
 
             if (str.includes("TEST_DONE_PASS")) {
                 showBanner("✅ TEST COMPLETELY PASSED.", "#00e676", "#121212");
-                recordResult("PASS");
-                
-                // Automatically send disconnect command after success
+                await recordResult("PASS");
                 await sendSerial("DISC\n");
                 logData("> Sent Command: DISC");
             }
             if (str.includes("TEST_DONE_FAIL")) {
                 showBanner("❌ TEST FAILED. INVESTIGATE AND RESTART.", "#ff1744", "#ffffff");
-                recordResult("FAIL");
-                
-                // Automatically send disconnect command after failure
+                await recordResult("FAIL");
                 await sendSerial("DISC\n");
                 logData("> Sent Command: DISC");
             }
         }
 
-        function recordResult(status) {
+        async function recordResult(status) {
             if (!currentMac) return;
 
             const now = new Date();
-            // Force IST explicitly
             const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
             const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
 
-            // Add to Data Array
+            // 1. Send data to Google Sheets (if URL provided)
+            const scriptUrl = scriptUrlInput.value.trim();
+            if (scriptUrl) {
+                try {
+                    await fetch(scriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // Bypasses browser CORS blocking for local files
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ mac: currentMac, date: dateStr, time: timeStr, status: status })
+                    });
+                    logData("> Sync: Sent data to Google Sheets.");
+                } catch (err) {
+                    logData("> Sync Error: Failed to reach Google Sheets.");
+                }
+            }
+
+            // 2. Add to Local Data Array
             testRecords.push({ mac: currentMac, date: dateStr, time: timeStr, status: status });
             
-            // Add to UI Table
+            // 3. Add to UI Table
             const row = document.createElement('tr');
             const statusClass = status === "PASS" ? "pass-text" : "fail-text";
             
@@ -317,9 +350,9 @@
                 <td>${timeStr}</td>
                 <td class="${statusClass}">${status}</td>
             `;
-            resultsBody.prepend(row); // Add to top of table
+            resultsBody.prepend(row); 
 
-            // Reset Input for the next scan
+            // 4. Reset Input for the next scan
             currentMac = "";
             macInput.value = "";
             macInput.disabled = false;
