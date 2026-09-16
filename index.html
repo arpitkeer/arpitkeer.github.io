@@ -258,7 +258,7 @@
             }
         }
 
-        function parseTestString(str) {
+        async function parseTestString(str) {
             if (str.includes("TEST_START")) resetUI();
 
             const match = str.match(/STEP_(\d+)_([A-Z]+)/);
@@ -281,10 +281,18 @@
             if (str.includes("TEST_DONE_PASS")) {
                 showBanner("✅ TEST COMPLETELY PASSED.", "#00e676", "#121212");
                 recordResult("PASS");
+                
+                // Automatically send disconnect command after success
+                await sendSerial("DISC\n");
+                logData("> Sent Command: DISC");
             }
             if (str.includes("TEST_DONE_FAIL")) {
                 showBanner("❌ TEST FAILED. INVESTIGATE AND RESTART.", "#ff1744", "#ffffff");
                 recordResult("FAIL");
+                
+                // Automatically send disconnect command after failure
+                await sendSerial("DISC\n");
+                logData("> Sent Command: DISC");
             }
         }
 
