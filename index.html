@@ -8,13 +8,22 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #00bcd4; margin-bottom: 5px; text-align: center; }
         .container { background: #1e1e1e; padding: 30px; border-radius: 12px; width: 650px; box-shadow: 0 8px 25px rgba(0,0,0,0.7); }
-        .btn-group { display: flex; gap: 15px; margin-bottom: 25px; }
+        
+        .btn-group { display: flex; gap: 15px; margin-bottom: 20px; }
         button { background: #00bcd4; color: #121212; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; transition: 0.2s; }
         button:hover:not(:disabled) { background: #0097a7; }
         button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        
         #startTestBtn { background: #ffb300; display: none; }
         #startTestBtn:hover:not(:disabled) { background: #e09e00; }
         
+        /* New Scanner Input Styles */
+        .input-group { margin-bottom: 25px; display: none; flex-direction: column; gap: 8px; }
+        .input-group label { color: #aaa; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 14px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 18px; box-sizing: border-box; transition: 0.3s; }
+        input[type="text"]:focus { outline: none; border-color: #00bcd4; box-shadow: 0 0 8px rgba(0, 188, 212, 0.4); }
+        input:disabled { background: #333; cursor: not-allowed; color: #777; }
+
         .step { display: flex; align-items: center; margin: 12px 0; padding: 12px 15px; border-radius: 6px; background: #2a2a2a; border: 1px solid #333; transition: 0.3s; }
         .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin-right: 15px; transition: background-color 0.3s, box-shadow 0.3s; }
         
@@ -25,11 +34,20 @@
         
         .step-title { font-size: 15px; font-weight: 500; }
         .instruction { color: #888; font-size: 13px; margin-left: auto; font-style: italic; }
-        
         .adc-display { color: #00bcd4; font-weight: bold; margin-left: 10px; font-size: 16px; }
 
         #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
         .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
+
+        /* New Table & Export Styles */
+        .results-container { margin-top: 30px; display: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; background: #2a2a2a; border-radius: 6px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
+        th { background-color: #333; color: #00bcd4; font-weight: 600; }
+        .pass-text { color: #00e676; font-weight: bold; }
+        .fail-text { color: #ff1744; font-weight: bold; }
+        #exportBtn { background: #4CAF50; margin-top: 15px; width: 100%; }
+        #exportBtn:hover { background: #45a049; }
     </style>
 </head>
 <body>
@@ -42,61 +60,64 @@
             <button id="connectBtn">1. Connect to USB Reader</button>
             <button id="startTestBtn">2. Start HW Test</button>
         </div>
+
+        <!-- Scanner Input Area -->
+        <div class="input-group" id="inputGroup">
+            <label for="macInput">Scan MAC Address (Auto-starts test)</label>
+            <input type="text" id="macInput" placeholder="Awaiting barcode scanner..." disabled autocomplete="off">
+        </div>
         
-        <div class="step" id="step_1">
-            <span class="dot gray"></span> 
-            <span class="step-title">1. Initialize & Sample ADC</span> 
-            <span class="instruction">Silent reading</span>
-        </div>
-        <div class="step" id="step_2">
-            <span class="dot gray"></span> 
-            <span class="step-title">2. Check Initial Pins</span> 
-            <span class="instruction">Requires 10,11=1 | 25,0,12=0</span>
-        </div>
-        <div class="step" id="step_3">
-            <span class="dot gray"></span> 
-            <span class="step-title">3. Magnet Below Sensors</span> 
-            <span class="instruction">Awaiting 10=0, 11=0 (8s limit)</span>
-        </div>
-        <div class="step" id="step_4">
-            <span class="dot gray"></span> 
-            <span class="step-title">4. Magnet Over Tamper</span> 
-            <span class="instruction">Awaiting 0=1, 12=1 (8s limit)</span>
-        </div>
-        <div class="step" id="step_5">
-            <span class="dot gray"></span> 
-            <span class="step-title">5. Validate ADC Data <span id="adc_value" class="adc-display"></span></span> 
-            <span class="instruction">Internal check</span>
-        </div>
-        <div class="step" id="step_6">
-            <span class="dot gray"></span> 
-            <span class="step-title">6. I2C EEPROM R/W Test</span> 
-            <span class="instruction">Internal verification</span>
-        </div>
-        <div class="step" id="step_7">
-            <span class="dot gray"></span> 
-            <span class="step-title">7. Fire Custom LoRa Uplink</span> 
-            <span class="instruction">Spins up module & sends packet</span>
-        </div>
-        <div class="step" id="step_8">
-            <span class="dot gray"></span> 
-            <span class="step-title">8. Battery 100% & Shipping</span> 
-            <span class="instruction">Finalizing state configuration</span>
-        </div>
+        <div class="step" id="step_1"><span class="dot gray"></span><span class="step-title">1. Initialize & Sample ADC</span><span class="instruction">Silent reading</span></div>
+        <div class="step" id="step_2"><span class="dot gray"></span><span class="step-title">2. Check Initial Pins</span><span class="instruction">Requires 10,11=1 | 25,0,12=0</span></div>
+        <div class="step" id="step_3"><span class="dot gray"></span><span class="step-title">3. Magnet Below Sensors</span><span class="instruction">Awaiting 10=0, 11=0 (8s limit)</span></div>
+        <div class="step" id="step_4"><span class="dot gray"></span><span class="step-title">4. Magnet Over Tamper</span><span class="instruction">Awaiting 0=1, 12=1 (8s limit)</span></div>
+        <div class="step" id="step_5"><span class="dot gray"></span><span class="step-title">5. Validate ADC Data <span id="adc_value" class="adc-display"></span></span><span class="instruction">Internal check</span></div>
+        <div class="step" id="step_6"><span class="dot gray"></span><span class="step-title">6. I2C EEPROM R/W Test</span><span class="instruction">Internal verification</span></div>
+        <div class="step" id="step_7"><span class="dot gray"></span><span class="step-title">7. Fire Custom LoRa Uplink</span><span class="instruction">Spins up module & sends packet</span></div>
+        <div class="step" id="step_8"><span class="dot gray"></span><span class="step-title">8. Battery 100% & Finalize</span><span class="instruction">Finalizing state configuration</span></div>
 
         <div id="statusBanner" class="status-banner"></div>
         <div id="log">Awaiting connection...<br></div>
+
+        <!-- Results Table -->
+        <div class="results-container" id="resultsContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th>MAC Address</th>
+                        <th>Date (IST)</th>
+                        <th>Time (IST)</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+            <button id="exportBtn">Download CSV Export</button>
+        </div>
     </div>
 
     <script>
         let port;
         let reader;
         let writer;
+        
+        let testRecords = [];
+        let currentMac = "";
+
         const logBox = document.getElementById('log');
         const banner = document.getElementById('statusBanner');
         const connectBtn = document.getElementById('connectBtn');
         const startTestBtn = document.getElementById('startTestBtn');
         const adcValueSpan = document.getElementById('adc_value');
+        
+        const inputGroup = document.getElementById('inputGroup');
+        const macInput = document.getElementById('macInput');
+        
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsBody = document.getElementById('resultsBody');
+        const exportBtn = document.getElementById('exportBtn');
 
         function logData(text) {
             logBox.innerHTML += text + "<br>";
@@ -153,12 +174,18 @@
                 connectBtn.innerText = "Reader Connected";
                 connectBtn.style.backgroundColor = "#00e676";
                 connectBtn.disabled = true;
+                
+                // Show test button and scanner input
                 startTestBtn.style.display = "block";
+                inputGroup.style.display = "flex";
+                macInput.disabled = false;
+                macInput.focus();
                 
                 logData("Serial port opened successfully.");
                 resetUI();
                 readLoop();
 
+                // Auto-sync Time
                 setTimeout(async () => {
                     const currentEpoch = Math.floor(Date.now() / 1000);
                     await sendSerial(currentEpoch + "\n");
@@ -170,16 +197,36 @@
             }
         });
 
+        // Trigger test automatically when scanner inputs MAC and hits 'Enter'
+        macInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (macInput.value.trim() !== '') {
+                    startTestBtn.click();
+                }
+            }
+        });
+
         startTestBtn.addEventListener('click', async () => {
+            currentMac = macInput.value.trim().toUpperCase();
+            if (!currentMac) {
+                alert("Please scan or enter a MAC Address first.");
+                macInput.focus();
+                return;
+            }
+
+            // Lock UI during test
+            macInput.disabled = true;
+            startTestBtn.disabled = true;
             resetUI();
-            const currentEpoch = Math.floor(Date.now() / 1000);
             
+            const currentEpoch = Math.floor(Date.now() / 1000);
             await sendSerial("SET_TIME " + currentEpoch + "\n");
             logData("> Sent Command: SET_TIME " + currentEpoch);
             
             setTimeout(async () => {
                 await sendSerial("TEST_HW\n");
-                logData("> Sent Command: TEST_HW");
+                logData(`> Sent Command: TEST_HW (Testing MAC: ${currentMac})`);
             }, 600);
         });
 
@@ -232,12 +279,71 @@
             }
 
             if (str.includes("TEST_DONE_PASS")) {
-                showBanner("✅ TEST COMPLETELY PASSED. REBOOTING INTO SHIPPING.", "#00e676", "#121212");
+                showBanner("✅ TEST COMPLETELY PASSED.", "#00e676", "#121212");
+                recordResult("PASS");
             }
             if (str.includes("TEST_DONE_FAIL")) {
                 showBanner("❌ TEST FAILED. INVESTIGATE AND RESTART.", "#ff1744", "#ffffff");
+                recordResult("FAIL");
             }
         }
+
+        function recordResult(status) {
+            if (!currentMac) return;
+
+            const now = new Date();
+            // Force IST explicitly
+            const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+            const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+
+            // Add to Data Array
+            testRecords.push({ mac: currentMac, date: dateStr, time: timeStr, status: status });
+            
+            // Add to UI Table
+            resultsContainer.style.display = "block";
+            const row = document.createElement('tr');
+            const statusClass = status === "PASS" ? "pass-text" : "fail-text";
+            
+            row.innerHTML = `
+                <td>${currentMac}</td>
+                <td>${dateStr}</td>
+                <td>${timeStr}</td>
+                <td class="${statusClass}">${status}</td>
+            `;
+            resultsBody.prepend(row); // Add to top of table
+
+            // Reset Input for the next scan
+            currentMac = "";
+            macInput.value = "";
+            macInput.disabled = false;
+            startTestBtn.disabled = false;
+            macInput.focus();
+        }
+
+        // CSV Export Logic
+        exportBtn.addEventListener('click', () => {
+            if (testRecords.length === 0) {
+                alert("No records to export.");
+                return;
+            }
+
+            let csvContent = "MAC Address,Date (IST),Time (IST),Result\n";
+            testRecords.forEach(record => {
+                csvContent += `${record.mac},${record.date},${record.time},${record.status}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Meter_Test_Log_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
     </script>
 </body>
 </html>
