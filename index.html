@@ -39,8 +39,8 @@
         #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
         .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
 
-        /* New Table & Export Styles */
-        .results-container { margin-top: 30px; display: none; }
+        /* Table & Export Styles - results-container display is now block */
+        .results-container { margin-top: 30px; display: block; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: #2a2a2a; border-radius: 6px; overflow: hidden; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
         th { background-color: #333; color: #00bcd4; font-weight: 600; }
@@ -300,7 +300,6 @@
             testRecords.push({ mac: currentMac, date: dateStr, time: timeStr, status: status });
             
             // Add to UI Table
-            resultsContainer.style.display = "block";
             const row = document.createElement('tr');
             const statusClass = status === "PASS" ? "pass-text" : "fail-text";
             
