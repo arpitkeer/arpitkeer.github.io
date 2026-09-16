@@ -321,11 +321,10 @@
             const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
             const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
 
-            // 1. Send data to Google Sheets (if URL provided)
+            // 1. Send data to Google Sheets using the "Tracking Pixel" method
             const scriptUrl = scriptUrlInput.value.trim();
             if (scriptUrl) {
                 try {
-                    // Attach data directly to the URL (bypassing POST body CORS blocks)
                     const params = new URLSearchParams({ 
                         mac: currentMac, 
                         date: dateStr, 
@@ -333,12 +332,13 @@
                         status: status 
                     });
                     
-                    const fullUrl = scriptUrl + "?" + params.toString();
+                    // Safely handle URLs that might already have query parameters
+                    const separator = scriptUrl.includes('?') ? '&' : '?';
+                    const fullUrl = scriptUrl + separator + params.toString();
 
-                    await fetch(fullUrl, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    // Bypasses all browser security restrictions
+                    new Image().src = fullUrl;
+                    
                     logData("> Sync: Sent data to Google Sheets.");
                 } catch (err) {
                     logData("> Sync Error: Failed to reach Google Sheets.");
