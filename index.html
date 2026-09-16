@@ -325,11 +325,19 @@
             const scriptUrl = scriptUrlInput.value.trim();
             if (scriptUrl) {
                 try {
-                    await fetch(scriptUrl, {
-                        method: 'POST',
-                        mode: 'no-cors', // Bypasses browser CORS blocking for local files
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ mac: currentMac, date: dateStr, time: timeStr, status: status })
+                    // Attach data directly to the URL (bypassing POST body CORS blocks)
+                    const params = new URLSearchParams({ 
+                        mac: currentMac, 
+                        date: dateStr, 
+                        time: timeStr, 
+                        status: status 
+                    });
+                    
+                    const fullUrl = scriptUrl + "?" + params.toString();
+
+                    await fetch(fullUrl, {
+                        method: 'GET',
+                        mode: 'no-cors'
                     });
                     logData("> Sync: Sent data to Google Sheets.");
                 } catch (err) {
