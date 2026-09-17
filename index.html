@@ -312,14 +312,10 @@
             if (str.includes("TEST_DONE_PASS")) {
                 showBanner("✅ TEST COMPLETELY PASSED.", "#00e676", "#121212");
                 await recordResult("PASS");
-                await sendSerial("DISC\n");
-                logData("> Sent Command: DISC");
             }
             if (str.includes("TEST_DONE_FAIL")) {
                 showBanner("❌ TEST FAILED. INVESTIGATE AND RESTART.", "#ff1744", "#ffffff");
                 await recordResult("FAIL");
-                await sendSerial("DISC\n");
-                logData("> Sent Command: DISC");
             }
         }
 
