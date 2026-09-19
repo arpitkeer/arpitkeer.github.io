@@ -20,7 +20,6 @@
         #restartBtn { background: #ff1744; color: white; display: none; }
         #restartBtn:hover { background: #d50000; }
 
-        /* Inputs */
         .input-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
         .input-group label { color: #aaa; font-size: 14px; }
         input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
@@ -41,7 +40,6 @@
         #log { background: #000; color: #00e676; padding: 15px; height: 160px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; border-radius: 6px; margin-top: 25px; border: 1px solid #333; }
         .status-banner { text-align: center; padding: 10px; margin-top: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; display: none; }
 
-        /* Table & Export Styles */
         .results-container { margin-top: 30px; display: block; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: #2a2a2a; border-radius: 6px; overflow: hidden; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
@@ -68,7 +66,6 @@
     
     <div class="container">
         
-        <!-- Google Sheets Web App URL -->
         <div class="input-group">
             <label for="scriptUrl">Google Apps Script URL (For Live Cloud Sync)</label>
             <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
@@ -80,7 +77,6 @@
             <button id="restartBtn">Abort / Restart</button>
         </div>
 
-        <!-- Scanner Input Area -->
         <div class="input-group" id="scanGroup" style="display: none;">
             <label for="macInput">Scan MAC Address (Auto-starts sequence)</label>
             <input type="text" id="macInput" placeholder="Awaiting barcode scanner..." disabled autocomplete="off">
@@ -96,7 +92,6 @@
         <div id="statusBanner" class="status-banner"></div>
         <div id="log">Awaiting connection...<br></div>
 
-        <!-- Results Table -->
         <div class="results-container" id="resultsContainer">
             <table>
                 <thead>
@@ -107,9 +102,7 @@
                         <th>Result</th>
                     </tr>
                 </thead>
-                <tbody id="resultsBody">
-                    <!-- Rows injected via JS -->
-                </tbody>
+                <tbody id="resultsBody"></tbody>
             </table>
             <button id="exportBtn">Download CSV Export</button>
         </div>
@@ -125,19 +118,15 @@
         const connectBtn = document.getElementById('connectBtn');
         const startTestBtn = document.getElementById('startTestBtn');
         const restartBtn = document.getElementById('restartBtn');
-        
         const scanGroup = document.getElementById('scanGroup');
         const macInput = document.getElementById('macInput');
         const scriptUrlInput = document.getElementById('scriptUrl');
-        
         const resultsBody = document.getElementById('resultsBody');
         const exportBtn = document.getElementById('exportBtn');
 
-        // Regex Promise variables
-        let activeCommandRegex = null;
-        let activeCommandResolve = null;
-
-        const delay = ms => new Promise(res => setTimeout(res, ms));
+        // State Machine Variables (No Promises)
+        let qaState = 'IDLE';
+        let stepTimeoutId = null;
 
         function logData(text) {
             logBox.innerHTML += `[${new Date().toLocaleTimeString()}] ${text}<br>`;
@@ -156,16 +145,10 @@
             if(!stepDiv) return;
             const dot = stepDiv.querySelector('.dot');
             dot.className = `dot ${status}`;
-            
-            if (status === 'yellow') {
-                stepDiv.style.borderColor = "#ffb300"; stepDiv.style.backgroundColor = "#332c1c";
-            } else if (status === 'green') {
-                stepDiv.style.borderColor = "#00e676"; stepDiv.style.backgroundColor = "#1b3320";
-            } else if (status === 'red') {
-                stepDiv.style.borderColor = "#ff1744"; stepDiv.style.backgroundColor = "#3d1c20";
-            } else {
-                stepDiv.style.borderColor = "#333"; stepDiv.style.backgroundColor = "#2a2a2a";
-            }
+            if (status === 'yellow') { stepDiv.style.borderColor = "#ffb300"; stepDiv.style.backgroundColor = "#332c1c"; }
+            else if (status === 'green') { stepDiv.style.borderColor = "#00e676"; stepDiv.style.backgroundColor = "#1b3320"; }
+            else if (status === 'red') { stepDiv.style.borderColor = "#ff1744"; stepDiv.style.backgroundColor = "#3d1c20"; }
+            else { stepDiv.style.borderColor = "#333"; stepDiv.style.backgroundColor = "#2a2a2a"; }
         }
 
         function resetUI() {
@@ -182,24 +165,39 @@
             writer = null;
         }
 
-        // Sends a command and waits for the reader to print the ACK
-        async function sendCommandAndWait(cmd, regex, timeoutMs = 6000) {
-            await sendSerial(cmd);
-            logData(`> Sent: ${cmd}`);
-            return new Promise((resolve, reject) => {
-                activeCommandRegex = regex;
-                activeCommandResolve = resolve;
-                setTimeout(() => {
-                    activeCommandRegex = null;
-                    activeCommandResolve = null;
-                    reject(new Error(`Timeout waiting for response to ${cmd}`));
-                }, timeoutMs);
-            });
+        function setQaState(newState) {
+            qaState = newState;
+            if (stepTimeoutId) clearTimeout(stepTimeoutId);
+            
+            if (newState !== 'IDLE') {
+                stepTimeoutId = setTimeout(() => {
+                    failSequence(`Timeout exceeded while waiting at step: ${newState}`);
+                }, 15000); // 15 seconds per step maximum
+            }
+        }
+
+        async function failSequence(reason) {
+            setQaState('IDLE');
+            logData(`❌ FAILED: ${reason}`);
+            sendSerial("DISC"); 
+            showBanner("❌ PROVISIONING FAILED", "#ff1744", "#ffffff");
+            
+            for(let i=1; i<=6; i++) {
+                const el = document.getElementById(`step_${i}`).querySelector('.dot');
+                if(el.classList.contains('yellow')) updateStep(i, 'red');
+            }
+            await recordResult("FAILED");
+        }
+
+        async function finishSequence() {
+            setQaState('IDLE');
+            showBanner("✅ METER PROVISIONED & SHIPPED", "#00e676", "#121212");
+            await recordResult("SHIPPED");
         }
 
         connectBtn.addEventListener('click', async () => {
             if (!('serial' in navigator)) {
-                alert("Web Serial API not supported in this browser. Please use Chrome or Edge.");
+                alert("Web Serial API not supported in this browser.");
                 return;
             }
             try {
@@ -218,9 +216,8 @@
                 
                 logData("Serial port opened successfully.");
                 resetUI();
-                readLoop(); // Start listening in the background
+                readLoop();
 
-                // CRITICAL FIX: Sends current epoch to the reader after 1.5 seconds to unblock the getchar() prompt
                 setTimeout(async () => {
                     const currentEpoch = Math.floor(Date.now() / 1000);
                     await sendSerial(currentEpoch.toString());
@@ -234,8 +231,8 @@
 
         restartBtn.addEventListener('click', async () => {
             logData("> Aborting / Disconnecting...");
-            await sendSerial("DISC"); 
-            
+            sendSerial("DISC"); 
+            setQaState('IDLE');
             resetUI();
             currentMac = "";
             macInput.value = "";
@@ -247,13 +244,11 @@
         macInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                if (macInput.value.trim() !== '') {
-                    startTestBtn.click();
-                }
+                if (macInput.value.trim() !== '') startTestBtn.click();
             }
         });
 
-        startTestBtn.addEventListener('click', async () => {
+        startTestBtn.addEventListener('click', () => {
             currentMac = macInput.value.trim().toUpperCase();
             if (!currentMac) {
                 alert("Please scan or enter a MAC Address first.");
@@ -265,86 +260,9 @@
             startTestBtn.disabled = true;
             resetUI();
 
-            try {
-                // Step 1: Wait for BLE Connection
-                updateStep(1, 'yellow');
-                logData("Waiting for BLE Auth. Wake up the meter...");
-                await new Promise((resolve, reject) => {
-                    activeCommandRegex = /[AUTH] Meter proof verified/;
-                    activeCommandResolve = resolve;
-                    setTimeout(() => reject(new Error("BLE Connection Timeout. Is meter awake?")), 15000);
-                });
-                updateStep(1, 'green');
-                logData("✅ BLE Authenticated.");
-
-                await delay(2000);
-
-                // Step 2: Validate PINS
-                updateStep(2, 'yellow');
-                let pinMatch = await sendCommandAndWait("GET_PINS", /[METER ACK] PINS: S1=(\d)\s+S2=(\d)\s+C=(\d)/);
-                let s1 = parseInt(pinMatch[1]);
-                let s2 = parseInt(pinMatch[2]);
-                let c  = parseInt(pinMatch[3]);
-                if (s1 === 1 && s2 === 1 && c === 0) {
-                    updateStep(2, 'green');
-                    logData("✅ Pins OK: 10=1, 11=1, 12=0");
-                } else {
-                    throw new Error(`Pin Check Failed! (10=${s1}, 11=${s2}, 12=${c})`);
-                }
-
-                await delay(1000);
-
-                // Step 3: Clear Tamper
-                updateStep(3, 'yellow');
-                await sendCommandAndWait("CLR_TAMPER", /[METER ACK] [TAMPER] CLEARED/);
-                updateStep(3, 'green');
-                logData("✅ Tamper Cleared.");
-
-                await delay(1000);
-
-                // Step 4: Reset Sched
-                updateStep(4, 'yellow');
-                await sendCommandAndWait("RESET_SCHED", /[METER ACK] OK SCHED_RESET/);
-                updateStep(4, 'green');
-                logData("✅ Schedule Reset.");
-
-                await delay(1000);
-
-                // Step 5: Sync Time
-                updateStep(5, 'yellow');
-                const currentEpoch = Math.floor(Date.now() / 1000);
-                await sendCommandAndWait(`SET_TIME ${currentEpoch}`, /[METER ACK] [TIME] UPDATED EPOCH=/);
-                updateStep(5, 'green');
-                logData("✅ Time Synced.");
-
-                await delay(1000);
-
-                // Step 6: Shipping Mode
-                updateStep(6, 'yellow');
-                await sendCommandAndWait("SHIPPING", /[METER ACK] OK SHIPPING/);
-                updateStep(6, 'green');
-                logData("✅ Shipping Mode Activated.");
-
-                // Finish
-                await delay(500);
-                await sendSerial("DISC");
-
-                showBanner("✅ METER PROVISIONED & SHIPPED", "#00e676", "#121212");
-                await recordResult("SHIPPED");
-
-            } catch (error) {
-                logData(`❌ FAILED: ${error.message}`);
-                await sendSerial("DISC"); 
-                showBanner("❌ PROVISIONING FAILED", "#ff1744", "#ffffff");
-                
-                // Color the failed step red
-                for(let i=1; i<=6; i++) {
-                    const el = document.getElementById(`step_${i}`).querySelector('.dot');
-                    if(el.classList.contains('yellow')) updateStep(i, 'red');
-                }
-                
-                await recordResult("FAILED");
-            }
+            updateStep(1, 'yellow');
+            logData("Waiting for BLE Auth. Wake up the meter...");
+            setQaState('WAIT_AUTH');
         });
 
         async function readLoop() {
@@ -365,18 +283,64 @@
                     for (let line of lines) {
                         line = line.trim();
                         if (line) {
-                            // Filter out background noise but keep ACKs, AUTH messages, and SETUP confirmation
                             if (line.includes("[METER ACK]") || line.includes("AUTH") || line.includes("[SETUP]")) {
                                 logData(`RX <- ${line}`);
                             }
 
-                            if (activeCommandRegex && activeCommandRegex.test(line)) {
-                                const match = line.match(activeCommandRegex);
-                                const resolver = activeCommandResolve;
-                                activeCommandRegex = null;
-                                activeCommandResolve = null;
-                                resolver(match);
+                            // --- ROCK SOLID STATE MACHINE LOGIC ---
+                            if (qaState === 'WAIT_AUTH' && line.includes("Meter proof verified")) {
+                                updateStep(1, 'green');
+                                logData("✅ BLE Authenticated.");
+                                updateStep(2, 'yellow');
+                                setQaState('WAIT_PINS');
+                                setTimeout(() => { sendSerial("GET_PINS"); logData("> Sent: GET_PINS"); }, 1000);
                             }
+                            else if (qaState === 'WAIT_PINS' && line.includes("PINS: S1=")) {
+                                let pinMatch = line.match(/S1=(\d)\s+S2=(\d)\s+C=(\d)/);
+                                if (pinMatch && pinMatch[1] === '1' && pinMatch[2] === '1' && pinMatch[3] === '0') {
+                                    updateStep(2, 'green');
+                                    logData("✅ Pins OK");
+                                    updateStep(3, 'yellow');
+                                    setQaState('WAIT_CLR');
+                                    setTimeout(() => { sendSerial("CLR_TAMPER"); logData("> Sent: CLR_TAMPER"); }, 1000);
+                                } else {
+                                    let s1 = pinMatch ? pinMatch[1] : '?';
+                                    let s2 = pinMatch ? pinMatch[2] : '?';
+                                    let c  = pinMatch ? pinMatch[3] : '?';
+                                    failSequence(`Pins Check Failed! (10=${s1}, 11=${s2}, 12=${c})`);
+                                }
+                            }
+                            else if (qaState === 'WAIT_CLR' && line.includes("[TAMPER] CLEARED")) {
+                                updateStep(3, 'green');
+                                logData("✅ Tamper Cleared");
+                                updateStep(4, 'yellow');
+                                setQaState('WAIT_SCHED');
+                                setTimeout(() => { sendSerial("RESET_SCHED"); logData("> Sent: RESET_SCHED"); }, 1000);
+                            }
+                            else if (qaState === 'WAIT_SCHED' && line.includes("OK SCHED_RESET")) {
+                                updateStep(4, 'green');
+                                logData("✅ Schedule Reset");
+                                updateStep(5, 'yellow');
+                                setQaState('WAIT_TIME');
+                                setTimeout(() => { 
+                                    const epoch = Math.floor(Date.now() / 1000);
+                                    sendSerial(`SET_TIME ${epoch}`); 
+                                    logData(`> Sent: SET_TIME ${epoch}`); 
+                                }, 1000);
+                            }
+                            else if (qaState === 'WAIT_TIME' && line.includes("UPDATED EPOCH")) {
+                                updateStep(5, 'green');
+                                logData("✅ Time Synced");
+                                updateStep(6, 'yellow');
+                                setQaState('WAIT_SHIP');
+                                setTimeout(() => { sendSerial("SHIPPING"); logData("> Sent: SHIPPING"); }, 1000);
+                            }
+                            else if (qaState === 'WAIT_SHIP' && line.includes("OK SHIPPING")) {
+                                updateStep(6, 'green');
+                                logData("✅ Shipping Mode Activated");
+                                setTimeout(() => { sendSerial("DISC"); finishSequence(); }, 500);
+                            }
+                            // --------------------------------------
                         }
                     }
                 }
@@ -392,7 +356,6 @@
             const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
             const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
 
-            // 1. Send data to Google Sheets using the Hidden Form POST method
             const scriptUrl = scriptUrlInput.value.trim();
             if (scriptUrl) {
                 try {
@@ -409,22 +372,14 @@
                 }
             }
 
-            // 2. Add to Local Data Array
             testRecords.push({ mac: currentMac, date: dateStr, time: timeStr, status: status });
             
-            // 3. Add to UI Table
             const row = document.createElement('tr');
             const statusClass = status === "SHIPPED" ? "pass-text" : "fail-text";
             
-            row.innerHTML = `
-                <td>${currentMac}</td>
-                <td>${dateStr}</td>
-                <td>${timeStr}</td>
-                <td class="${statusClass}">${status}</td>
-            `;
+            row.innerHTML = `<td>${currentMac}</td><td>${dateStr}</td><td>${timeStr}</td><td class="${statusClass}">${status}</td>`;
             resultsBody.prepend(row); 
 
-            // 4. Reset Input for the next scan
             currentMac = "";
             macInput.value = "";
             macInput.disabled = false;
@@ -432,12 +387,8 @@
             macInput.focus();
         }
 
-        // CSV Export Logic
         exportBtn.addEventListener('click', () => {
-            if (testRecords.length === 0) {
-                alert("No records to export.");
-                return;
-            }
+            if (testRecords.length === 0) return alert("No records to export.");
 
             let csvContent = "MAC Address,Date (IST),Time (IST),Result\n";
             testRecords.forEach(record => {
@@ -446,9 +397,7 @@
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute("href", url);
+            link.setAttribute("href", URL.createObjectURL(blob));
             link.setAttribute("download", `Meter_Provisioning_Log_${new Date().getTime()}.csv`);
             link.style.visibility = 'hidden';
             
