@@ -125,6 +125,7 @@
         let port, reader, writer;
         let testRecords = [];
         let currentMac = "";
+        let lastHwError = ""; // Stores the exact reason the meter failed
 
         const logBox = document.getElementById('log');
         const banner = document.getElementById('statusBanner');
@@ -139,7 +140,6 @@
         const resultsBody = document.getElementById('resultsBody');
         const exportBtn = document.getElementById('exportBtn');
 
-        // State Machine Variables
         let activeCommandString = null;
         let activeCommandResolve = null;
         let activeCommandTimeoutId = null;
@@ -173,6 +173,7 @@
         function resetUI() {
             banner.style.display = 'none';
             adcValueSpan.innerText = ""; 
+            lastHwError = "";
             for(let i=1; i<=13; i++) updateStep(i, 'gray');
         }
 
@@ -185,7 +186,6 @@
             writer = null;
         }
 
-        // Wait for a specific substring in the incoming serial data
         async function waitForResponse(matchString, timeoutMs = 15000) {
             return new Promise((resolve, reject) => {
                 activeCommandString = matchString;
@@ -244,7 +244,6 @@
             logData("> Aborting / Disconnecting...");
             await sendSerial("DISC"); 
             
-            // Clean up any hanging promises
             if (activeCommandTimeoutId) clearTimeout(activeCommandTimeoutId);
             activeCommandString = null;
             activeCommandResolve = null;
@@ -284,14 +283,13 @@
                 await delay(1000);
 
                 // Phase 1: Hardware Test
-                updateStep(1, 'yellow');
+                logData(`> Sent: TEST_HW`);
                 await sendSerial("TEST_HW");
-                logData(`> Sent: TEST_HW (Testing MAC: ${currentMac})`);
                 
-                // Wait for TEST_HW to finish completely (takes ~20-30 seconds max)
                 let hwResult = await waitForResponse("TEST_DONE_", 45000);
                 if (hwResult.includes("TEST_DONE_FAIL")) {
-                    throw new Error("Hardware Diagnostic Test Failed!");
+                    // Meter rejected the physical hardware state
+                    throw new Error(`METER ABORTED TEST! Reason: ${lastHwError || "Unknown Pin/Hardware Failure"}`);
                 }
                 logData("✅ Hardware Test Passed!");
                 await delay(1000);
@@ -327,7 +325,6 @@
                 updateStep(13, 'green');
                 logData("✅ Shipping Mode Activated.");
 
-                // Finish Cleanly
                 await delay(500);
                 await sendSerial("DISC");
 
@@ -337,7 +334,7 @@
             } catch (error) {
                 logData(`❌ FAILED: ${error.message}`);
                 await sendSerial("DISC"); 
-                showBanner("❌ PROVISIONING FAILED", "#ff1744", "#ffffff");
+                showBanner(`❌ ${error.message}`, "#ff1744", "#ffffff");
                 await recordResult("FAILED");
             }
         });
@@ -360,14 +357,17 @@
                     for (let line of lines) {
                         line = line.trim();
                         if (line) {
-                            // Suppress junk, log important lines
-                            if (line.includes("[METER ACK]") || line.includes("[INPUT]") || line.includes("AUTH") || line.includes("TEST_")) {
+                            if (line.includes("[METER ACK]") || line.includes("[INPUT]") || line.includes("AUTH") || line.includes("TEST_") || line.includes("STEP_")) {
                                 logData(line);
                             }
 
-                            // Dynamic parsing for Hardware Test UI Steps
                             if (line.includes("TEST_START")) {
                                 for(let i=1; i<=8; i++) updateStep(i, 'gray');
+                            }
+
+                            // Capture specific failure reasons from the meter
+                            if (line.includes("FAIL PINS:")) {
+                                lastHwError = line.split("FAIL ")[1];
                             }
 
                             const stepMatch = line.match(/STEP_(\d+)_([A-Z]+)/);
@@ -377,7 +377,10 @@
                                 
                                 if (statusText === "ACTIVE") updateStep(stepNum, 'yellow');
                                 else if (statusText === "PASS") updateStep(stepNum, 'green');
-                                else if (statusText === "FAIL") updateStep(stepNum, 'red');
+                                else if (statusText === "FAIL") {
+                                    updateStep(stepNum, 'red');
+                                    if(!lastHwError) lastHwError = `Failed at Step ${stepNum}`;
+                                }
                             }
 
                             if (line.includes("STEP_5_PASS")) {
@@ -385,7 +388,6 @@
                                 if (voltMatch) adcValueSpan.innerText = `(${voltMatch[1]} mV)`;
                             }
 
-                            // State Machine String Matching
                             if (activeCommandString && line.includes(activeCommandString)) {
                                 if (activeCommandTimeoutId) {
                                     clearTimeout(activeCommandTimeoutId);
@@ -411,7 +413,6 @@
             const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
             const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
 
-            // Send data to Google Sheets
             const scriptUrl = scriptUrlInput.value.trim();
             if (scriptUrl) {
                 try {
@@ -436,7 +437,6 @@
             row.innerHTML = `<td>${currentMac}</td><td>${dateStr}</td><td>${timeStr}</td><td class="${statusClass}">${status}</td>`;
             resultsBody.prepend(row); 
 
-            // Reset UI for next scan
             currentMac = "";
             macInput.value = "";
             macInput.disabled = false;
@@ -444,7 +444,6 @@
             macInput.focus();
         }
 
-        // CSV Export Logic
         exportBtn.addEventListener('click', () => {
             if (testRecords.length === 0) return alert("No records to export.");
 
