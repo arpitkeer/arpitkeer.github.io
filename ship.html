@@ -220,6 +220,13 @@
                 resetUI();
                 readLoop(); // Start listening in the background
 
+                // CRITICAL FIX: Sends current epoch to the reader after 1.5 seconds to unblock the getchar() prompt
+                setTimeout(async () => {
+                    const currentEpoch = Math.floor(Date.now() / 1000);
+                    await sendSerial(currentEpoch.toString());
+                    logData("> Auto-synced Reader Time: " + currentEpoch);
+                }, 1500);
+
             } catch (err) {
                 logData("Error: " + err);
             }
@@ -358,7 +365,8 @@
                     for (let line of lines) {
                         line = line.trim();
                         if (line) {
-                            if (line.includes("[METER ACK]") || line.includes("AUTH")) {
+                            // Filter out background noise but keep ACKs, AUTH messages, and SETUP confirmation
+                            if (line.includes("[METER ACK]") || line.includes("AUTH") || line.includes("[SETUP]")) {
                                 logData(`RX <- ${line}`);
                             }
 
